@@ -1,8 +1,9 @@
 // src/api.js
 import axios from "axios";
 
+const host = window.location.hostname;
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: `http://${host}:4000/api`,
 });
 
 // Materials
