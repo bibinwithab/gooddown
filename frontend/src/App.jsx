@@ -50,7 +50,7 @@ function App() {
                 Reports
               </Link>
             </li>
-            <li>
+            <li style={{ marginBottom: "0.8rem" }}>
               <Link
                 style={{ color: "white", textDecoration: "none" }}
                 to="/master-data"
