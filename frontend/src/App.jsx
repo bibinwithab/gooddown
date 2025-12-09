@@ -1,5 +1,5 @@
 // src/App.jsx
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
 import TransactionPage from "./pages/TransactionPage";
 import LedgerPage from "./pages/LedgerPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -29,36 +29,71 @@ function App() {
             Jobin Agency Admin
           </h2>
           <ul style={{ listStyle: "none", padding: 0 }}>
-            <li style={{ marginBottom: "0.8rem" }}>
-              <Link style={{ color: "white", textDecoration: "none" }} to="/">
-                Transaction Entry
-              </Link>
-            </li>
-            <li style={{ marginBottom: "0.8rem" }}>
-              <Link
-                style={{ color: "white", textDecoration: "none" }}
-                to="/ledger"
-              >
-                Owner Ledger
-              </Link>
-            </li>
-            <li style={{ marginBottom: "0.8rem" }}>
-              <Link
-                style={{ color: "white", textDecoration: "none" }}
-                to="/reports"
-              >
-                Reports
-              </Link>
-            </li>
-            <li style={{ marginBottom: "0.8rem" }}>
-              <Link
-                style={{ color: "white", textDecoration: "none" }}
-                to="/master-data"
-              >
-                Master Data
-              </Link>
-            </li>
-          </ul>
+  <li style={{ marginBottom: "0.8rem" }}>
+    <NavLink 
+      to="/" 
+      style={({ isActive }) => ({
+        color: "white",
+        textDecoration: "none",
+        background: isActive ? "#4f46e5" : "transparent",
+        padding: "6px 10px",
+        borderRadius: "4px",
+        display: "block"
+      })}
+    >
+      Transaction Entry
+    </NavLink>
+  </li>
+
+  <li style={{ marginBottom: "0.8rem" }}>
+    <NavLink 
+      to="/ledger"
+      style={({ isActive }) => ({
+        color: "white",
+        textDecoration: "none",
+        background: isActive ? "#4f46e5" : "transparent",
+        padding: "6px 10px",
+        borderRadius: "4px",
+        display: "block"
+      })}
+    >
+      Owner Ledger
+    </NavLink>
+  </li>
+
+  <li style={{ marginBottom: "0.8rem" }}>
+    <NavLink 
+      to="/reports"
+      style={({ isActive }) => ({
+        color: "white",
+        textDecoration: "none",
+        background: isActive ? "#4f46e5" : "transparent",
+        padding: "6px 10px",
+        borderRadius: "4px",
+        display: "block"
+      })}
+    >
+      Reports
+    </NavLink>
+  </li>
+
+  <li style={{ marginBottom: "0.8rem" }}>
+    <NavLink 
+      to="/master-data"
+      style={({ isActive }) => ({
+        color: "white",
+        textDecoration: "none",
+        background: isActive ? "#4f46e5" : "transparent",
+        padding: "6px 10px",
+        borderRadius: "4px",
+        display: "block"
+      })}
+    >
+      Master Data
+    </NavLink>
+  </li>
+</ul>
+
         </nav>
 
         {/* Main content */}

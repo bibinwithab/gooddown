@@ -125,9 +125,9 @@ function ReportsPage() {
       >
         <form
           onSubmit={handleSubmit}
-          style={{ display: "flex", gap: "1rem", alignItems: "flex-end" }}
+          style={{ display: "flex", gap: "1rem", alignItems: "flex-end" , padding: "1rem" }}
         >
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, marginRight: "0.5rem" }}>
             <label style={{ display: "block", fontWeight: "600" }}>
               From (Date)
             </label>
@@ -138,7 +138,7 @@ function ReportsPage() {
               style={inputStyle}
             />
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, marginRight: "0.5rem" }}>
             <label style={{ display: "block", fontWeight: "600" }}>
               To (Date)
             </label>
@@ -153,7 +153,7 @@ function ReportsPage() {
             type="submit"
             style={{
               padding: "0.5rem 1rem",
-              background: "#2563eb",
+              background: "#4f46e5",
               color: "white",
               borderRadius: "4px",
               border: "none",

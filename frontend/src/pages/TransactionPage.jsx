@@ -141,8 +141,7 @@ function TransactionPage() {
         items: enrichedItems,
       });
 
-      // Optional: reset form items for next bill
-      // setItems([{ materialId: "", quantity: "" }]);
+      setItems([{ materialId: "", quantity: "" }]);
     } catch (err) {
       console.error(err);
       setError("Failed to create bill");
@@ -376,8 +375,8 @@ function TransactionPage() {
               style={{
                 padding: "0.3rem 0.7rem",
                 borderRadius: "4px",
-                border: "1px solid #cbd5e1",
-                background: "#e5f4ff",
+                border: "1px solid #4f46e5",
+                background: "#c0bee9ff",
                 cursor: "pointer",
                 fontSize: "0.85rem",
               }}
@@ -395,7 +394,7 @@ function TransactionPage() {
             disabled={submitting}
             style={{
               padding: "0.6rem 1.2rem",
-              background: "#2563eb",
+              background: "#4f46e5",
               color: "white",
               borderRadius: "4px",
               border: "none",
