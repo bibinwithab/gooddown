@@ -28,4 +28,10 @@ export const fetchOwnerAccountsSummary = (from, to) =>
 // Bills
 export const createBill = (data) => api.post("/bills", data);
 
+// Payments
+export const fetchPaymentLedger = (ownerId) =>
+  api.get(`/owners/${ownerId}/ledger`);
+
+export const createPayment = (ownerId, payload) =>
+  api.post(`/owners/${ownerId}/payments`, payload);
 export default api;

@@ -1,6 +1,6 @@
 // src/pages/LedgerPage.jsx
 import { useEffect, useState } from "react";
-import { fetchOwners, fetchLedger } from "../api";
+import { fetchOwners, fetchPaymentLedger, createPayment } from "../api";
 import { exportToCsv } from "../utils/exportToCSV";
 
 function LedgerPage() {
@@ -8,6 +8,12 @@ function LedgerPage() {
   const [selectedOwnerId, setSelectedOwnerId] = useState("");
   const [ledger, setLedger] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // payment form state
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [savingPayment, setSavingPayment] = useState(false);
 
   useEffect(() => {
     const loadOwners = async () => {
@@ -21,15 +27,13 @@ function LedgerPage() {
     loadOwners();
   }, []);
 
-  const handleOwnerChange = async (e) => {
-    const ownerId = e.target.value;
-    setSelectedOwnerId(ownerId);
-    setLedger([]);
+  const loadLedger = async (ownerId) => {
     if (!ownerId) return;
     setLoading(true);
+    setLedger([]);
     try {
-      const res = await fetchLedger(ownerId);
-      setLedger(res.data);
+      const res = await fetchPaymentLedger(ownerId);
+      setLedger(res.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -37,13 +41,56 @@ function LedgerPage() {
     }
   };
 
-  const totalEarnings =
-    ledger.length > 0 ? ledger[ledger.length - 1].cumulative_earnings : 0;
+  const handleOwnerChange = async (e) => {
+    const ownerId = e.target.value;
+    setSelectedOwnerId(ownerId);
+    setLedger([]);
+    if (!ownerId) return;
+    await loadLedger(ownerId);
+  };
 
-  // ✅ NEW: Export ledger to Excel/CSV
+  const latestBalance =
+    ledger.length > 0 ? Number(ledger[ledger.length - 1].balance || 0) : 0;
+
+  // Record a payment (DEBIT)
+  const handleRecordPayment = async (e) => {
+    e.preventDefault();
+    if (!selectedOwnerId) {
+      alert("Select an owner first");
+      return;
+    }
+    const amt = Number(paymentAmount);
+    if (!amt || amt <= 0) {
+      alert("Enter a valid payment amount");
+      return;
+    }
+
+    try {
+      setSavingPayment(true);
+      await createPayment(selectedOwnerId, {
+        amount: amt,
+        mode: paymentMode,
+        notes: paymentNote,
+      });
+
+      // Clear form
+      setPaymentAmount("");
+      setPaymentNote("");
+
+      // Reload ledger to include new debit + updated balance
+      await loadLedger(selectedOwnerId);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to record payment");
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  // Export ledger to Excel (XLSX via exportToCsv)
   const handleExportLedger = () => {
     if (!selectedOwnerId || ledger.length === 0) {
-      alert("Select an owner with transactions before exporting");
+      alert("Select an owner with entries before exporting");
       return;
     }
 
@@ -55,22 +102,26 @@ function LedgerPage() {
     exportToCsv(
       `Ledger_${ownerName.replace(/\s+/g, "_")}`,
       ledger.map((row) => ({
-        date_time: new Date(row.transaction_timestamp).toLocaleString(),
-        material: row.material_name,
-        rate: Number(row.rate_per_unit).toFixed(2),
-        vehicle_number: row.vehicle_number,
-        quantity: row.quantity,
-        amount: Number(row.total_cost).toFixed(2),
-        cumulative: Number(row.cumulative_earnings).toFixed(2),
+        date_time: new Date(row.entry_date).toLocaleString(),
+        vehicle_number: row.vehicle_number || "",
+        material: row.entry_type === "CREDIT" ? row.material_name : row.material_name || "Payment",
+        quantity: row.quantity ?? "",
+        rate: row.rate_at_sale ?? "",
+        amount: Number(row.amount || 0).toFixed(2),
+        credit: Number(row.credit_amount || 0).toFixed(2),
+        debit: Number(row.debit_amount || 0).toFixed(2),
+        balance: Number(row.balance || 0).toFixed(2),
       })),
       [
         { label: "Date & Time", key: "date_time" },
-        { label: "Material", key: "material" },
-        { label: "Rate", key: "rate" },
         { label: "Vehicle Number", key: "vehicle_number" },
+        { label: "Material / Description", key: "material" },
         { label: "Quantity", key: "quantity" },
+        { label: "Rate at Sale (₹)", key: "rate" },
         { label: "Amount (₹)", key: "amount" },
-        { label: "Cumulative Earnings (₹)", key: "cumulative" },
+        { label: "Credit (₹)", key: "credit" },
+        { label: "Debit (₹)", key: "debit" },
+        { label: "Balance (₹)", key: "balance" },
       ]
     );
   };
@@ -79,6 +130,7 @@ function LedgerPage() {
     <div>
       <h1 style={{ marginBottom: "1rem" }}>Vehicle Owner Ledger</h1>
 
+      {/* Owner selector + payment form */}
       <div
         style={{
           background: "white",
@@ -86,7 +138,7 @@ function LedgerPage() {
           borderRadius: "8px",
           boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
           marginBottom: "1rem",
-          maxWidth: "480px",
+          maxWidth: "520px",
         }}
       >
         <label style={{ display: "block", fontWeight: "600" }}>
@@ -110,6 +162,80 @@ function LedgerPage() {
             </option>
           ))}
         </select>
+
+        {/* Payment form (debit entry) */}
+        {selectedOwnerId && (
+          <form
+            onSubmit={handleRecordPayment}
+            style={{
+              marginTop: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+            }}
+          >
+            <div style={{ fontWeight: "600" }}>Record Payment (Debit)</div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Amount"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "0.4rem",
+                  borderRadius: "4px",
+                  border: "1px solid #cbd5e1",
+                }}
+              />
+              <select
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+                style={{
+                  width: "120px",
+                  padding: "0.4rem",
+                  borderRadius: "4px",
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="BANK">Bank</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <input
+              type="text"
+              placeholder="Note (optional)"
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              style={{
+                padding: "0.4rem",
+                borderRadius: "4px",
+                border: "1px solid #cbd5e1",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={savingPayment}
+              style={{
+                alignSelf: "flex-start",
+                padding: "0.4rem 0.8rem",
+                borderRadius: "4px",
+                border: "none",
+                background: "#16a34a",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+              }}
+            >
+              {savingPayment ? "Saving..." : "Add Payment"}
+            </button>
+          </form>
+        )}
       </div>
 
       {loading && <p>Loading ledger...</p>}
@@ -131,8 +257,9 @@ function LedgerPage() {
               alignItems: "center",
             }}
           >
-            <strong>Total Earnings: ₹{Number(totalEarnings).toFixed(2)}</strong>
-            {/* ✅ Export button */}
+            <strong>
+              Outstanding Balance: ₹{latestBalance.toFixed(2)}
+            </strong>
             <button
               onClick={handleExportLedger}
               style={{
@@ -158,37 +285,47 @@ function LedgerPage() {
             <thead>
               <tr>
                 <th style={thS}>Date & Time</th>
-                <th style={thS}>Material</th>
-                <th style={thS}>Rate (₹)</th>
                 <th style={thS}>Vehicle</th>
+                <th style={thS}>Material / Description</th>
                 <th style={thS}>Qty</th>
+                <th style={thS}>Rate(₹)</th>
                 <th style={thS}>Amount (₹)</th>
-                <th style={thS}>Cumulative (₹)</th>
+                <th style={thS}>Credit (₹)</th>
+                <th style={thS}>Debit (₹)</th>
+                <th style={thS}>Balance (₹)</th>
               </tr>
             </thead>
             <tbody>
-              {ledger.map((row, idx) => (
-                <tr key={idx}>
-                  <td style={tdS}>
-                    {new Date(row.transaction_timestamp).toLocaleString()}
-                  </td>
-                  <td style={tdS}>{row.material_name}</td>
-                  <td style={tdS}>{Number(row.rate_per_unit).toFixed(2)}</td>
-                  <td style={tdS}>{row.vehicle_number}</td>
-                  <td style={tdS}>{row.quantity}</td>
-                  <td style={tdS}>{Number(row.total_cost).toFixed(2)}</td>
-                  <td style={tdS}>
-                    {Number(row.cumulative_earnings).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
+              {ledger.map((row, idx) => {
+                const rate = row.rate_at_sale ?? "";
+                const amount = Number(row.amount || 0).toFixed(2);
+                const credit = Number(row.credit_amount || 0).toFixed(2);
+                const debit = Number(row.debit_amount || 0).toFixed(2);
+                const balance = Number(row.balance || 0).toFixed(2);
+
+                return (
+                  <tr key={idx}>
+                    <td style={tdS}>
+                      {new Date(row.entry_date).toLocaleString()}
+                    </td>
+                    <td style={tdS}>{row.vehicle_number || "-"}</td>
+                    <td style={tdS}>{row.material_name}</td>
+                    <td style={tdS}>{row.quantity ?? "-"}</td>
+                    <td style={tdS}>{rate !== "" ? Number(rate).toFixed(2) : "-"}</td>
+                    <td style={tdS}>{amount}</td>
+                    <td style={tdS}>{credit}</td>
+                    <td style={tdS}>{debit}</td>
+                    <td style={tdS}>{balance}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
       {!loading && selectedOwnerId && ledger.length === 0 && (
-        <p>No transactions for this owner yet.</p>
+        <p>No entries for this owner yet.</p>
       )}
     </div>
   );

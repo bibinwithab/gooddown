@@ -1,5 +1,5 @@
 // src/pages/ReportsPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchOwnerAccountsSummary } from "../api";
 import { exportToCsv } from "../utils/exportToCSV";
 
@@ -15,6 +15,9 @@ function ReportsPage() {
   const [effectiveTo, setEffectiveTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // sort mode: false = by name, true = by latest activity
+  const [sortByLatest, setSortByLatest] = useState(false);
 
   // On first load, fetch default (today) from backend
   useEffect(() => {
@@ -48,26 +51,57 @@ function ReportsPage() {
     loadSummary();
   };
 
-  const totalForAllOwners = data.reduce(
-    (sum, row) => sum + Number(row.total_payable || 0),
+  const totalCreditAllOwners = data.reduce(
+    (sum, row) => sum + Number(row.total_credit || 0),
+    0
+  );
+  const totalDebitAllOwners = data.reduce(
+    (sum, row) => sum + Number(row.total_debit || 0),
+    0
+  );
+  const totalBalanceAllOwners = data.reduce(
+    (sum, row) => sum + Number(row.balance || 0),
     0
   );
 
+  // 🔽 Sorted data based on toggle
+  const sortedData = useMemo(() => {
+    const arr = [...data];
+    if (sortByLatest) {
+      arr.sort((a, b) => {
+        const da = a.last_activity ? new Date(a.last_activity) : new Date(0);
+        const db = b.last_activity ? new Date(b.last_activity) : new Date(0);
+        return db - da; // latest first
+      });
+    } else {
+      arr.sort((a, b) => a.owner_name.localeCompare(b.owner_name));
+    }
+    return arr;
+  }, [data, sortByLatest]);
+
   const handleExport = () => {
-    if (!data || data.length === 0) {
+    if (!sortedData || sortedData.length === 0) {
       alert("No data to export");
       return;
     }
 
     exportToCsv(
       `OwnerAccounts_${effectiveFrom}_to_${effectiveTo}`,
-      data.map((row) => ({
+      sortedData.map((row) => ({
         owner_name: row.owner_name,
-        total_payable: Number(row.total_payable || 0).toFixed(2),
+        total_credit: Number(row.total_credit || 0).toFixed(2),
+        total_debit: Number(row.total_debit || 0).toFixed(2),
+        balance: Number(row.balance || 0).toFixed(2),
+        last_activity: row.last_activity
+          ? new Date(row.last_activity).toLocaleString()
+          : "",
       })),
       [
         { label: "Owner Name", key: "owner_name" },
-        { label: "Total Amount (₹)", key: "total_payable" },
+        { label: "Total Credit (₹)", key: "total_credit" },
+        { label: "Total Paid (Debit) (₹)", key: "total_debit" },
+        { label: "Balance (₹)", key: "balance" },
+        { label: "Last Activity", key: "last_activity" },
       ]
     );
   };
@@ -75,7 +109,7 @@ function ReportsPage() {
   return (
     <div>
       <h1 style={{ marginBottom: "1rem" }}>
-        Owner Accounts – Amount Collectable by Period
+        Owner Accounts – Balance by Period
       </h1>
 
       {/* Filter Card */}
@@ -174,29 +208,56 @@ function ReportsPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
             }}
           >
             <div>
               <strong>Total Owners: </strong> {data.length} &nbsp;|&nbsp;
-              <strong>Total Collectable (From All Owners): </strong> ₹
-              {totalForAllOwners.toFixed(2)}
+              <strong>Total Credit: </strong> ₹{totalCreditAllOwners.toFixed(2)}{" "}
+              &nbsp;|&nbsp;
+              <strong>Total Paid (Debit): </strong> ₹
+              {totalDebitAllOwners.toFixed(2)} &nbsp;|&nbsp;
+              <strong>Total Balance (Collectable): </strong> ₹
+              {totalBalanceAllOwners.toFixed(2)}
             </div>
-            <button
-              onClick={handleExport}
-              style={{
-                padding: "0.3rem 0.8rem",
-                borderRadius: "4px",
-                border: "1px solid #cbd5e1",
-                background: "#e5f4ff",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-              }}
+
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
             >
-              Export to Excel
-            </button>
+              <label
+                style={{
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={sortByLatest}
+                  onChange={(e) => setSortByLatest(e.target.checked)}
+                />
+                Sort by latest transaction
+              </label>
+
+              <button
+                onClick={handleExport}
+                style={{
+                  padding: "0.3rem 0.8rem",
+                  borderRadius: "4px",
+                  border: "1px solid #cbd5e1",
+                  background: "#e5f4ff",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                }}
+              >
+                Export to Excel
+              </button>
+            </div>
           </div>
 
-          {data.length === 0 ? (
+          {sortedData.length === 0 ? (
             <p>No data for this period.</p>
           ) : (
             <table
@@ -209,15 +270,27 @@ function ReportsPage() {
               <thead>
                 <tr>
                   <th style={thS}>Owner Name</th>
-                  <th style={thS}>Amount Collectable (₹)</th>
+                  <th style={thS}>Total Credit (₹)</th>
+                  <th style={thS}>Total Paid (Debit) (₹)</th>
+                  <th style={thS}>Balance (₹)</th>
+                  <th style={thS}>Last Activity</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((row) => (
+                {sortedData.map((row) => (
                   <tr key={row.owner_id}>
                     <td style={tdS}>{row.owner_name}</td>
                     <td style={tdS}>
-                      {Number(row.total_payable || 0).toFixed(2)}
+                      {Number(row.total_credit || 0).toFixed(2)}
+                    </td>
+                    <td style={tdS}>
+                      {Number(row.total_debit || 0).toFixed(2)}
+                    </td>
+                    <td style={tdS}>{Number(row.balance || 0).toFixed(2)}</td>
+                    <td style={tdS}>
+                      {row.last_activity
+                        ? new Date(row.last_activity).toLocaleString()
+                        : "-"}
                     </td>
                   </tr>
                 ))}

@@ -6,6 +6,7 @@ import ownersRouter from "./routes/owners.js";
 import transactionsRouter from "./routes/transactions.js";
 import reportsRouter from "./routes/reports.js";
 import billsRouter from "./routes/bills.js";
+import ledgerRouter from "./routes/ledger.js";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/owners", ownersRouter);
 app.use("/api/transactions", transactionsRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/bills", billsRouter);
+app.use("/api", ledgerRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
