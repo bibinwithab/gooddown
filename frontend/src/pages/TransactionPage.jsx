@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchMaterials, fetchOwners, createBill } from "../api";
+import { fetchMaterials, fetchOwners, createBill, createOwner } from "../api";
 import BillTemplate from "../components/BillTemplate";
 import "../components/BillTemplate.css";
 
@@ -17,6 +17,10 @@ function TransactionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [bill, setBill] = useState(null);
   const [error, setError] = useState("");
+  const [showNewOwner, setShowNewOwner] = useState(false);
+  const [newOwnerName, setNewOwnerName] = useState("");
+  const [newOwnerContact, setNewOwnerContact] = useState("");
+  const [creatingOwner, setCreatingOwner] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchMaterials(), fetchOwners()])
@@ -120,15 +124,25 @@ function TransactionPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
               <label className="block font-medium mb-1">Vehicle Owner</label>
-              <input
-                value={ownerSearch}
-                onChange={(e) => {
-                  setOwnerSearch(e.target.value);
-                  setSelectedOwner(null);
-                }}
-                placeholder="Type owner name..."
-                className="w-full border rounded px-3 py-2"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={ownerSearch}
+                  onChange={(e) => {
+                    setOwnerSearch(e.target.value);
+                    setSelectedOwner(null);
+                  }}
+                  placeholder="Type owner name..."
+                  className="w-full border rounded px-3 py-2"
+                />
+                <button
+                  type="button"
+                  title="Add owner"
+                  onClick={() => setShowNewOwner((s) => !s)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded"
+                >
+                  +
+                </button>
+              </div>
 
               {ownerSearch && !selectedOwner && (
                 <div className="absolute z-10 w-full bg-white border rounded mt-1 max-h-48 overflow-y-auto">
@@ -149,6 +163,71 @@ function TransactionPage() {
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {showNewOwner && (
+                <div className="mt-2 p-3 border rounded bg-slate-50">
+                  <div className="flex gap-2">
+                    <input
+                      value={newOwnerName}
+                      onChange={(e) => setNewOwnerName(e.target.value)}
+                      placeholder="Owner name"
+                      className="w-1/2 border rounded px-2 py-1"
+                    />
+                    <input
+                      value={newOwnerContact}
+                      onChange={(e) => setNewOwnerContact(e.target.value)}
+                      placeholder="Contact info (optional)"
+                      className="w-1/2 border rounded px-2 py-1"
+                    />
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!newOwnerName.trim())
+                          return setError("Enter owner name");
+                        try {
+                          setCreatingOwner(true);
+                          setError("");
+                          const resp = await createOwner({
+                            name: newOwnerName.trim(),
+                            contact_info: newOwnerContact.trim() || null,
+                          });
+                          const created = resp.data;
+                          // add to owners list and select
+                          setOwners((o) => [...o, created]);
+                          setSelectedOwner(created);
+                          setOwnerSearch(created.name);
+                          // reset new owner form
+                          setNewOwnerName("");
+                          setNewOwnerContact("");
+                          setShowNewOwner(false);
+                        } catch (err) {
+                          console.error(err);
+                          setError("Failed to create owner");
+                        } finally {
+                          setCreatingOwner(false);
+                        }
+                      }}
+                      className="px-3 py-1 bg-green-600 text-white rounded"
+                      disabled={creatingOwner}
+                    >
+                      {creatingOwner ? "Creating..." : "Create"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewOwner(false);
+                        setNewOwnerName("");
+                        setNewOwnerContact("");
+                      }}
+                      className="px-3 py-1 border rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

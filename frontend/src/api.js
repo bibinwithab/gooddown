@@ -16,6 +16,7 @@ export const createMaterial = (data) => api.post("/materials", data);
 // Owners
 export const fetchOwners = () => api.get("/owners");
 export const updateOwner = (id, payload) => api.put(`/owners/${id}`, payload);
+export const createOwner = (data) => api.post("/owners", data);
 
 // Transactions
 export const createTransaction = (data) => api.post("/transactions", data);
