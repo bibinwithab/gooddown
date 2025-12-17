@@ -29,14 +29,7 @@ function BillTemplate({ data }) {
       <div className="slip-paper">
         {/* Header */}
         <div className="slip-header">
-          <h1>JOBIN AGENCY</h1>
-          <p>Construction Material &amp; Transport Services</p>
-
-          {/* ⬇️ Replace this with your real address */}
-          <p>Goodown Road, Nagercoil – 629001</p>
-
-          {/* ⬇️ Replace with your actual GSTIN */}
-          <p>GSTIN: 33ABCDE1234F1Z5</p>
+          <h1>JOBIN AGENCIES</h1>
         </div>
 
         {/* Bill meta */}
@@ -104,17 +97,7 @@ function BillTemplate({ data }) {
           <span className="amount">₹ {totalAmount}</span>
         </div>
 
-        <div className="slip-separator dotted" />
-
-        {/* Footer */}
-        <div className="slip-footer">
-          <p>Amount credited to owner ledger.</p>
-          <p>** Computer generated bill **</p>
-          <div className="slip-sign">
-            <div className="sign-line" />
-            <div>Authorized</div>
-          </div>
-        </div>
+        <div className="slip-separator dotted" /> 
       </div>
     </div>
   );

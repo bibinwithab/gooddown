@@ -1,4 +1,3 @@
-// src/pages/TransactionPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { fetchMaterials, fetchOwners, createBill } from "../api";
 import BillTemplate from "../components/BillTemplate";
@@ -10,32 +9,20 @@ function TransactionPage() {
 
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [ownerSearch, setOwnerSearch] = useState("");
-
   const [vehicleNumber, setVehicleNumber] = useState("");
-
-  const [submitting, setSubmitting] = useState(false);
-  const [bill, setBill] = useState(null); // bill data after creation
-  const [error, setError] = useState("");
-
-  // items = rows in the bill: { materialId, quantity }
   const [items, setItems] = useState([{ materialId: "", quantity: "" }]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [matRes, ownRes] = await Promise.all([
-          fetchMaterials(),
-          fetchOwners(),
-        ]);
-        setMaterials(matRes.data);
-        setOwners(ownRes.data);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load master data");
-      }
-    };
+  const [submitting, setSubmitting] = useState(false);
+  const [bill, setBill] = useState(null);
+  const [error, setError] = useState("");
 
-    loadData();
+  useEffect(() => {
+    Promise.all([fetchMaterials(), fetchOwners()])
+      .then(([m, o]) => {
+        setMaterials(m.data);
+        setOwners(o.data);
+      })
+      .catch(() => setError("Failed to load master data"));
   }, []);
 
   const filteredOwners = useMemo(() => {
@@ -44,27 +31,6 @@ function TransactionPage() {
       o.name.toLowerCase().includes(ownerSearch.toLowerCase())
     );
   }, [owners, ownerSearch]);
-
-  const handleOwnerSelect = (owner) => {
-    setSelectedOwner(owner);
-    setOwnerSearch(owner.name);
-  };
-
-  // ---- items helpers ----
-  const handleItemChange = (index, field, value) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], [field]: value };
-    setItems(updated);
-  };
-
-  const addItemRow = () => {
-    setItems([...items, { materialId: "", quantity: "" }]);
-  };
-
-  const removeItemRow = (index) => {
-    const updated = items.filter((_, i) => i !== index);
-    setItems(updated.length ? updated : [{ materialId: "", quantity: "" }]);
-  };
 
   const resolveRate = (materialId) => {
     const m = materials.find(
@@ -76,386 +42,247 @@ function TransactionPage() {
   const computedItems = items.map((it) => {
     const qty = Number(it.quantity) || 0;
     const rate = resolveRate(it.materialId);
-    const lineTotal = qty * rate;
-    return { ...it, rate, lineTotal };
+    return { ...it, rate, lineTotal: qty * rate };
   });
 
-  const billTotal = computedItems.reduce((sum, it) => sum + it.lineTotal, 0);
+  const billTotal = computedItems.reduce((s, i) => s + i.lineTotal, 0);
 
-  // ---- submit = create bill with multiple items ----
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setBill(null);
 
-    if (!selectedOwner) {
-      setError("Please select a vehicle owner");
-      return;
-    }
-
-    if (!vehicleNumber) {
-      setError("Please enter vehicle number");
-      return;
-    }
+    if (!selectedOwner) return setError("Select a vehicle owner");
+    if (!vehicleNumber) return setError("Enter vehicle number");
 
     const validItems = computedItems.filter(
-      (it) => it.materialId && Number(it.quantity) > 0 && it.lineTotal > 0
+      (i) => i.materialId && i.quantity > 0
     );
-
-    if (validItems.length === 0) {
-      setError("Please add at least one valid item (material + quantity)");
-      return;
-    }
+    if (!validItems.length) return setError("Add at least one item");
 
     try {
       setSubmitting(true);
-
       const res = await createBill({
         owner_id: selectedOwner.owner_id,
         vehicle_number: vehicleNumber,
-        items: validItems.map((it) => ({
-          material_id: Number(it.materialId),
-          quantity: Number(it.quantity),
+        items: validItems.map((i) => ({
+          material_id: Number(i.materialId),
+          quantity: Number(i.quantity),
         })),
       });
 
-      // Build data for BillTemplate
-      const billFromApi = res.data.bill;
-      const itemsFromApi = res.data.items || [];
-
-      const enrichedItems = itemsFromApi.map((item) => {
-        const material = materials.find(
-          (m) => m.material_id === item.material_id
-        );
-        return {
-          ...item,
-          material_name: material
-            ? material.name
-            : `Material ${item.material_id}`,
-        };
-      });
-
       setBill({
-        bill: billFromApi,
+        bill: res.data.bill,
         owner_name: selectedOwner.name,
-        items: enrichedItems,
+        items: res.data.items.map((it) => ({
+          ...it,
+          material_name:
+            materials.find((m) => m.material_id === it.material_id)?.name ||
+            "Material",
+        })),
       });
 
       setItems([{ materialId: "", quantity: "" }]);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Failed to create bill");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
-    <div className="no-print">
-      <h1 style={{ marginBottom: "1rem" }}>
+    <div className="max-w-5xl mx-auto no-print">
+      <h1 className="text-xl font-semibold mb-4">
         Transaction Entry & Bill Generation
       </h1>
 
       {error && (
-        <div
-          style={{
-            background: "#fee2e2",
-            color: "#b91c1c",
-            padding: "0.5rem 1rem",
-            borderRadius: "4px",
-            marginBottom: "1rem",
-          }}
-        >
+        <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
           {error}
         </div>
       )}
 
-      {/* Form card */}
-      <div
-        style={{
-          background: "white",
-          padding: "1.5rem",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-          marginBottom: "1.5rem",
-          maxWidth: "720px",
-        }}
-      >
-        <form onSubmit={handleSubmit}>
-          {/* Owner auto-suggest */}
-          <div style={{ marginBottom: "1rem", position: "relative" }}>
-            <label style={{ display: "block", fontWeight: "600" }}>
-              Vehicle Owner Name
-            </label>
-            <input
-              type="text"
-              value={ownerSearch}
-              onChange={(e) => {
-                setOwnerSearch(e.target.value);
-                setSelectedOwner(null);
-              }}
-              placeholder="Type owner name..."
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                marginTop: "0.25rem",
-                borderRadius: "4px",
-                border: "1px solid #cbd5e1",
-              }}
-            />
-            {/* Dropdown */}
-            {ownerSearch && !selectedOwner && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  right: 0,
-                  background: "white",
-                  border: "1px solid #e2e8f0",
-                  borderTop: "none",
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  zIndex: 10,
+      {/* FORM */}
+      <div className="bg-white rounded shadow p-4 md:p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* OWNER + VEHICLE */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <label className="block font-medium mb-1">Vehicle Owner</label>
+              <input
+                value={ownerSearch}
+                onChange={(e) => {
+                  setOwnerSearch(e.target.value);
+                  setSelectedOwner(null);
                 }}
-              >
-                {filteredOwners.length === 0 && (
-                  <div style={{ padding: "0.5rem", fontSize: "0.9rem" }}>
-                    No owners found
-                  </div>
-                )}
-                {filteredOwners.map((o) => (
-                  <div
-                    key={o.owner_id}
-                    onClick={() => handleOwnerSelect(o)}
-                    style={{
-                      padding: "0.4rem 0.6rem",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #f1f5f9",
-                    }}
-                  >
-                    <div>{o.name}</div>
-                    {o.contact_info && (
-                      <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                        {o.contact_info}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                placeholder="Type owner name..."
+                className="w-full border rounded px-3 py-2"
+              />
 
-          {/* Vehicle Number */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label style={{ display: "block", fontWeight: "600" }}>
-              Vehicle Number
-            </label>
-            <input
-              type="text"
-              value={vehicleNumber}
-              onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-              placeholder="TN-00-XXXX"
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                marginTop: "0.25rem",
-                borderRadius: "4px",
-                border: "1px solid #cbd5e1",
-              }}
-            />
-          </div>
-
-          {/* Items table */}
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontWeight: "600",
-                marginBottom: "0.5rem",
-              }}
-            >
-              Items
-            </label>
-
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "0.9rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <thead>
-                <tr>
-                  <th style={thStyle}>Material</th>
-                  <th style={thStyle}>Quantity</th>
-                  <th style={thStyle}>Rate (₹)</th>
-                  <th style={thStyle}>Line Total (₹)</th>
-                  <th style={thStyle}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {computedItems.map((row, index) => (
-                  <tr key={index}>
-                    <td style={tdStyle}>
-                      <select
-                        value={row.materialId}
-                        onChange={(e) =>
-                          handleItemChange(index, "materialId", e.target.value)
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "0.3rem",
-                          borderRadius: "4px",
-                          border: "1px solid #cbd5e1",
-                        }}
-                      >
-                        <option value="">Select</option>
-                        {materials.map((m) => (
-                          <option key={m.material_id} value={m.material_id}>
-                            {m.name} (₹{m.rate_per_unit}/{m.unit})
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.001"
-                        value={row.quantity}
-                        onChange={(e) =>
-                          handleItemChange(index, "quantity", e.target.value)
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "0.3rem",
-                          borderRadius: "4px",
-                          border: "1px solid #cbd5e1",
-                        }}
-                      />
-                    </td>
-                    <td style={tdStyle}>
-                      {row.rate ? row.rate.toFixed(2) : ""}
-                    </td>
-                    <td style={tdStyle}>
-                      {row.lineTotal ? row.lineTotal.toFixed(2) : ""}
-                    </td>
-                    <td style={tdStyle}>
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(index)}
-                          style={{
-                            padding: "0.2rem 0.5rem",
-                            borderRadius: "4px",
-                            border: "1px solid #e11d48",
-                            background: "#fee2e2",
-                            cursor: "pointer",
-                            fontSize: "0.8rem",
-                          }}
-                        >
-                          ✕
-                        </button>
+              {ownerSearch && !selectedOwner && (
+                <div className="absolute z-10 w-full bg-white border rounded mt-1 max-h-48 overflow-y-auto">
+                  {filteredOwners.map((o) => (
+                    <div
+                      key={o.owner_id}
+                      onClick={() => {
+                        setSelectedOwner(o);
+                        setOwnerSearch(o.name);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-slate-100"
+                    >
+                      <div>{o.name}</div>
+                      {o.contact_info && (
+                        <div className="text-xs text-slate-500">
+                          {o.contact_info}
+                        </div>
                       )}
-                    </td>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1">Vehicle Number</label>
+              <input
+                value={vehicleNumber}
+                onChange={(e) =>
+                  setVehicleNumber(e.target.value.toUpperCase())
+                }
+                placeholder="TN-00-XXXX"
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+          </div>
+
+          {/* ITEMS */}
+          <div>
+            <label className="block font-medium mb-2">Items</label>
+
+            {/* Responsive table */}
+            <div className="overflow-hidden">
+              <table className="w-full table-fixed text-sm">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="p-2 text-left">Material</th>
+                    <th className="p-2 text-left">Qty</th>
+                    <th className="p-2 text-left">Rate</th>
+                    <th className="p-2 text-left">Total</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {computedItems.map((row, i) => (
+                    <tr key={i} className="border-b">
+                      <td className="p-2">
+                        <select
+                          value={row.materialId}
+                          onChange={(e) =>
+                            setItems((p) =>
+                              p.map((x, idx) =>
+                                idx === i
+                                  ? { ...x, materialId: e.target.value }
+                                  : x
+                              )
+                            )
+                          }
+                          className="w-full border rounded px-2 py-1"
+                        >
+                          <option value="">Select</option>
+                          {materials.map((m) => (
+                            <option key={m.material_id} value={m.material_id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={row.quantity}
+                          onChange={(e) =>
+                            setItems((p) =>
+                              p.map((x, idx) =>
+                                idx === i
+                                  ? { ...x, quantity: e.target.value }
+                                  : x
+                              )
+                            )
+                          }
+                          className="w-full border rounded px-2 py-1"
+                        />
+                      </td>
+
+                      <td className="p-2">₹{row.rate.toFixed(2)}</td>
+                      <td className="p-2 font-medium">
+                        ₹{row.lineTotal.toFixed(2)}
+                      </td>
+
+                      <td className="p-2">
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setItems(items.filter((_, idx) => idx !== i))
+                            }
+                            className="text-red-600 font-bold"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <button
               type="button"
-              onClick={addItemRow}
-              style={{
-                padding: "0.3rem 0.7rem",
-                borderRadius: "4px",
-                border: "1px solid #4f46e5",
-                background: "#c0bee9ff",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-              }}
+              onClick={() =>
+                setItems([...items, { materialId: "", quantity: "" }])
+              }
+              className="mt-5 px-2 py-1 border border-indigo-600 bg-indigo-100 rounded text-sm"
             >
               + Add Item
             </button>
 
-            <div style={{ marginTop: "0.5rem", textAlign: "right" }}>
-              <strong>Bill Total: ₹{billTotal.toFixed(2)}</strong>
+            <div className="text-right font-semibold mt-1">
+              Bill Total: ₹{billTotal.toFixed(2)}
             </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            style={{
-              padding: "0.6rem 1.2rem",
-              background: "#4f46e5",
-              color: "white",
-              borderRadius: "4px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
+            className="bg-indigo-600 text-white px-6 py-2 rounded font-semibold"
           >
             {submitting ? "Saving..." : "Save & Generate Bill"}
           </button>
         </form>
       </div>
 
-      {/* Bill Preview + Print */}
-      {/* Bill Preview UI + Print button (on screen only) */}
+      {/* PREVIEW */}
       {bill && (
-        <div
-          className="no-print" /* optional, only for screen */
-          style={{
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-            display: "flex",
-            justifyContent: "space-between",
-            maxWidth: "720px",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Bill Preview</h2>
-          <button
-            type="button"
-            onClick={handlePrint}
-            style={{
-              padding: "0.4rem 0.8rem",
-              borderRadius: "4px",
-              border: "1px solid #cbd5e1",
-              background: "#f1f5f9",
-              cursor: "pointer",
-            }}
-          >
-            Print Bill
-          </button>
-        </div>
-      )}
+        <>
+          <div className="flex justify-between items-center mt-4 mb-2">
+            <h2 className="text-lg font-semibold">Bill Preview</h2>
+            <button
+              onClick={() => window.print()}
+              className="border px-3 py-1 rounded bg-slate-100"
+            >
+              Print Bill
+            </button>
+          </div>
 
-      {/* ✅ This is the ONLY thing we want to print */}
-      {bill && (
-        <div id="print-area-wrapper">
-          <BillTemplate data={bill} />
-        </div>
+          <div id="print-area-wrapper">
+            <BillTemplate data={bill} />
+          </div>
+        </>
       )}
     </div>
   );
 }
-
-const thStyle = {
-  textAlign: "left",
-  borderBottom: "1px solid #e5e7eb",
-  padding: "0.4rem",
-};
-
-const tdStyle = {
-  borderBottom: "1px solid #f1f5f9",
-  padding: "0.4rem",
-};
 
 export default TransactionPage;

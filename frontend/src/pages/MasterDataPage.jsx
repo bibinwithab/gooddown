@@ -5,6 +5,7 @@ import {
   fetchOwners,
   updateMaterial,
   updateOwner,
+  createMaterial,
 } from "../api";
 
 function MasterDataPage() {
@@ -13,6 +14,12 @@ function MasterDataPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const [newMaterial, setNewMaterial] = useState({
+    name: "",
+    rate_per_unit: "",
+    unit: "",
+    is_active: true,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -60,15 +67,49 @@ function MasterDataPage() {
       const updated = res.data || res;
 
       setMaterials((prev) =>
-        prev.map((mm) =>
-          mm.material_id === m.material_id ? updated : mm
-        )
+        prev.map((mm) => (mm.material_id === m.material_id ? updated : mm))
       );
     } catch (err) {
       console.error(err);
       alert(
         err.response?.data?.error || "Failed to save material. Check console."
       );
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const saveNewMaterial = async () => {
+    if (!newMaterial.name || !newMaterial.rate_per_unit || !newMaterial.unit) {
+      alert("Fill all material fields");
+      return;
+    }
+
+    try {
+      setSavingId("new-mat");
+
+      const res = await createMaterial({
+        name: newMaterial.name,
+        rate_per_unit: Number(newMaterial.rate_per_unit),
+        unit: newMaterial.unit,
+        is_active: newMaterial.is_active,
+      });
+
+      const created = res.data || res;
+
+      // Add to list
+      setMaterials((prev) => [created, ...prev]);
+
+      // Reset form
+      setNewMaterial({
+        name: "",
+        rate_per_unit: "",
+        unit: "",
+        is_active: true,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add material");
     } finally {
       setSavingId(null);
     }
@@ -87,9 +128,7 @@ function MasterDataPage() {
       const updated = res.data || res;
 
       setOwners((prev) =>
-        prev.map((oo) =>
-          oo.owner_id === o.owner_id ? updated : oo
-        )
+        prev.map((oo) => (oo.owner_id === o.owner_id ? updated : oo))
       );
     } catch (err) {
       console.error(err);
@@ -151,6 +190,71 @@ function MasterDataPage() {
                 </tr>
               </thead>
               <tbody>
+                <tr style={{ background: "#A1EDA4" }}>
+                  <td style={tdS}>
+                    <input
+                      type="text"
+                      placeholder="New material name"
+                      value={newMaterial.name}
+                      onChange={(e) =>
+                        setNewMaterial({ ...newMaterial, name: e.target.value })
+                      }
+                      style={{ ...inputCell, border: "1px solid #fff" }}
+                    />
+                  </td>
+
+                  <td style={tdS}>
+                    <input
+                      type="number"
+                      placeholder="Rate"
+                      value={newMaterial.rate_per_unit}
+                      onChange={(e) =>
+                        setNewMaterial({
+                          ...newMaterial,
+                          rate_per_unit: e.target.value,
+                        })
+                      }
+                      style={{ ...inputCell, border: "1px solid #fff" }}
+                    />
+                  </td>
+
+                  <td style={tdS}>
+                    <input
+                      type="text"
+                      placeholder="Unit"
+                      value={newMaterial.unit}
+                      onChange={(e) =>
+                        setNewMaterial({ ...newMaterial, unit: e.target.value })
+                      }
+                      style={{ ...inputCell, border: "1px solid #fff" }}
+                    />
+                  </td>
+
+                  <td style={tdS}>
+                    <input
+                      type="checkbox"
+                      checked={newMaterial.is_active}
+                      onChange={(e) =>
+                        setNewMaterial({
+                          ...newMaterial,
+                          is_active: e.target.checked,
+                        })
+                      }
+                    />
+                  </td>
+
+                  <td style={tdS}>
+                    <button
+                      type="button"
+                      onClick={saveNewMaterial}
+                      disabled={savingId === "new-mat"}
+                      style={smallBtn}
+                    >
+                      {savingId === "new-mat" ? "Adding..." : "Add"}
+                    </button>
+                  </td>
+                </tr>
+
                 {materials.map((m) => (
                   <tr key={m.material_id}>
                     <td style={tdS}>
@@ -259,11 +363,7 @@ function MasterDataPage() {
                         type="text"
                         value={o.name}
                         onChange={(e) =>
-                          handleOwnerChange(
-                            o.owner_id,
-                            "name",
-                            e.target.value
-                          )
+                          handleOwnerChange(o.owner_id, "name", e.target.value)
                         }
                         style={inputCell}
                       />

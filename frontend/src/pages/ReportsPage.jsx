@@ -1,13 +1,10 @@
-// src/pages/ReportsPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { fetchOwnerAccountsSummary } from "../api";
 import { exportToCsv } from "../utils/exportToCSV";
 
-// Helper: today's date as YYYY-MM-DD (local time)
 const todayStr = new Date().toISOString().slice(0, 10);
 
 function ReportsPage() {
-  // Default both dates to TODAY → daily report by default
   const [fromDate, setFromDate] = useState(todayStr);
   const [toDate, setToDate] = useState(todayStr);
   const [data, setData] = useState([]);
@@ -15,63 +12,38 @@ function ReportsPage() {
   const [effectiveTo, setEffectiveTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // sort mode: false = by name, true = by latest activity
   const [sortByLatest, setSortByLatest] = useState(false);
 
-  // On first load, fetch default (today) from backend
   useEffect(() => {
     loadSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, []);
 
   const loadSummary = async () => {
     try {
       setLoading(true);
       setError("");
-
       const res = await fetchOwnerAccountsSummary(
         fromDate || undefined,
         toDate || undefined
       );
-
       setData(res.data.owners || []);
       setEffectiveFrom(res.data.from);
       setEffectiveTo(res.data.to);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Failed to load owner accounts summary");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    loadSummary();
-  };
-
-  const totalCreditAllOwners = data.reduce(
-    (sum, row) => sum + Number(row.total_credit || 0),
-    0
-  );
-  const totalDebitAllOwners = data.reduce(
-    (sum, row) => sum + Number(row.total_debit || 0),
-    0
-  );
-  const totalBalanceAllOwners = data.reduce(
-    (sum, row) => sum + Number(row.balance || 0),
-    0
-  );
-
-  // 🔽 Sorted data based on toggle
   const sortedData = useMemo(() => {
     const arr = [...data];
     if (sortByLatest) {
       arr.sort((a, b) => {
         const da = a.last_activity ? new Date(a.last_activity) : new Date(0);
         const db = b.last_activity ? new Date(b.last_activity) : new Date(0);
-        return db - da; // latest first
+        return db - da;
       });
     } else {
       arr.sort((a, b) => a.owner_name.localeCompare(b.owner_name));
@@ -79,27 +51,29 @@ function ReportsPage() {
     return arr;
   }, [data, sortByLatest]);
 
-  const handleExport = () => {
-    if (!sortedData || sortedData.length === 0) {
-      alert("No data to export");
-      return;
-    }
+  const totals = {
+    credit: data.reduce((s, r) => s + Number(r.total_credit || 0), 0),
+    debit: data.reduce((s, r) => s + Number(r.total_debit || 0), 0),
+    balance: data.reduce((s, r) => s + Number(r.balance || 0), 0),
+  };
 
+  const handleExport = () => {
+    if (!sortedData.length) return;
     exportToCsv(
       `OwnerAccounts_${effectiveFrom}_to_${effectiveTo}`,
-      sortedData.map((row) => ({
-        owner_name: row.owner_name,
-        total_credit: Number(row.total_credit || 0).toFixed(2),
-        total_debit: Number(row.total_debit || 0).toFixed(2),
-        balance: Number(row.balance || 0).toFixed(2),
-        last_activity: row.last_activity
-          ? new Date(row.last_activity).toLocaleString()
+      sortedData.map((r) => ({
+        owner_name: r.owner_name,
+        total_credit: Number(r.total_credit || 0).toFixed(2),
+        total_debit: Number(r.total_debit || 0).toFixed(2),
+        balance: Number(r.balance || 0).toFixed(2),
+        last_activity: r.last_activity
+          ? new Date(r.last_activity).toLocaleString()
           : "",
       })),
       [
         { label: "Owner Name", key: "owner_name" },
         { label: "Total Credit (₹)", key: "total_credit" },
-        { label: "Total Paid (Debit) (₹)", key: "total_debit" },
+        { label: "Total Paid (₹)", key: "total_debit" },
         { label: "Balance (₹)", key: "balance" },
         { label: "Last Activity", key: "last_activity" },
       ]
@@ -107,219 +81,153 @@ function ReportsPage() {
   };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: "1rem" }}>
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-xl font-semibold mb-4">
         Owner Accounts – Balance by Period
       </h1>
 
-      {/* Filter Card */}
-      <div
-        style={{
-          background: "white",
-          padding: "1rem",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-          marginBottom: "1rem",
-          maxWidth: "520px",
-        }}
-      >
+      {/* FILTER */}
+      <div className="bg-white rounded shadow p-4 mb-4 max-w-xl">
         <form
-          onSubmit={handleSubmit}
-          style={{ display: "flex", gap: "1rem", alignItems: "flex-end" , padding: "1rem" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            loadSummary();
+          }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end"
         >
-          <div style={{ flex: 1, marginRight: "0.5rem" }}>
-            <label style={{ display: "block", fontWeight: "600" }}>
-              From (Date)
-            </label>
+          <div>
+            <label className="block font-medium">From</label>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              style={inputStyle}
+              className="w-full border rounded px-3 py-2"
             />
           </div>
-          <div style={{ flex: 1, marginRight: "0.5rem" }}>
-            <label style={{ display: "block", fontWeight: "600" }}>
-              To (Date)
-            </label>
+          <div>
+            <label className="block font-medium">To</label>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              style={inputStyle}
+              className="w-full border rounded px-3 py-2"
             />
           </div>
-          <button
-            type="submit"
-            style={{
-              padding: "0.5rem 1rem",
-              background: "#4f46e5",
-              color: "white",
-              borderRadius: "4px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-          >
+          <button className="bg-indigo-600 text-white rounded px-4 py-2 font-semibold">
             Apply
           </button>
         </form>
-        <p
-          style={{
-            marginTop: "0.5rem",
-            fontSize: "0.85rem",
-            color: "#64748b",
-          }}
-        >
-          Showing for: <strong>{effectiveFrom}</strong> to{" "}
+
+        <p className="text-sm text-slate-500 mt-2">
+          Showing: <strong>{effectiveFrom}</strong> →{" "}
           <strong>{effectiveTo}</strong>
         </p>
       </div>
 
       {error && (
-        <div
-          style={{
-            background: "#fee2e2",
-            color: "#b91c1c",
-            padding: "0.5rem 1rem",
-            borderRadius: "4px",
-            marginBottom: "1rem",
-          }}
-        >
+        <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
           {error}
         </div>
       )}
 
-      {loading && <p>Loading owner accounts...</p>}
-
-      {/* Table Card */}
+      {/* SUMMARY BAR */}
       {!loading && (
-        <div
-          style={{
-            background: "white",
-            padding: "1rem",
-            borderRadius: "8px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "0.5rem",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <strong>Total Owners: </strong> {data.length} &nbsp;|&nbsp;
-              <strong>Total Credit: </strong> ₹{totalCreditAllOwners.toFixed(2)}{" "}
-              &nbsp;|&nbsp;
-              <strong>Total Paid (Debit): </strong> ₹
-              {totalDebitAllOwners.toFixed(2)} &nbsp;|&nbsp;
-              <strong>Total Balance (Collectable): </strong> ₹
-              {totalBalanceAllOwners.toFixed(2)}
-            </div>
-
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-            >
-              <label
-                style={{
-                  fontSize: "0.85rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={sortByLatest}
-                  onChange={(e) => setSortByLatest(e.target.checked)}
-                />
-                Sort by latest transaction
-              </label>
-
-              <button
-                onClick={handleExport}
-                style={{
-                  padding: "0.3rem 0.8rem",
-                  borderRadius: "4px",
-                  border: "1px solid #cbd5e1",
-                  background: "#e5f4ff",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                }}
-              >
-                Export to Excel
-              </button>
-            </div>
+        <div className="flex flex-wrap gap-2 justify-between items-center mb-3 text-sm">
+          <div className="text-xl">
+            <strong>Total Owners:</strong> {data.length} &nbsp;|&nbsp;
+            <strong>Credit:</strong> ₹{totals.credit.toFixed(2)} &nbsp;|&nbsp;
+            <strong>Paid:</strong> ₹{totals.debit.toFixed(2)} &nbsp;|&nbsp;
+            <strong>Balance:</strong> ₹{totals.balance.toFixed(2)}
           </div>
 
-          {sortedData.length === 0 ? (
-            <p>No data for this period.</p>
-          ) : (
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "0.9rem",
-              }}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1 text-sm">
+              <input
+                type="checkbox"
+                checked={sortByLatest}
+                onChange={(e) => setSortByLatest(e.target.checked)}
+              />
+              Sort by latest
+            </label>
+            <button
+              onClick={handleExport}
+              className="border px-3 py-1 rounded bg-blue-50"
             >
-              <thead>
-                <tr>
-                  <th style={thS}>Owner Name</th>
-                  <th style={thS}>Total Credit (₹)</th>
-                  <th style={thS}>Total Paid (Debit) (₹)</th>
-                  <th style={thS}>Balance (₹)</th>
-                  <th style={thS}>Last Activity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedData.map((row) => (
-                  <tr key={row.owner_id}>
-                    <td style={tdS}>{row.owner_name}</td>
-                    <td style={tdS}>
-                      {Number(row.total_credit || 0).toFixed(2)}
-                    </td>
-                    <td style={tdS}>
-                      {Number(row.total_debit || 0).toFixed(2)}
-                    </td>
-                    <td style={tdS}>{Number(row.balance || 0).toFixed(2)}</td>
-                    <td style={tdS}>
-                      {row.last_activity
-                        ? new Date(row.last_activity).toLocaleString()
-                        : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              Export
+            </button>
+          </div>
         </div>
       )}
+
+      {/* MOBILE CARDS */}
+      <div className="space-y-3 md:hidden">
+        {sortedData.map((r) => (
+          <div key={r.owner_id} className="bg-white rounded shadow p-3">
+            <div className="text-lg font-semibold">{r.owner_name}</div>
+            <div className="text-sm mt-1">
+              Credit: ₹{Number(r.total_credit || 0).toFixed(2)}
+            </div>
+            <div className="text-sm">
+              Paid: ₹{Number(r.total_debit || 0).toFixed(2)}
+            </div>
+            <div className="font-semibold mt-1">
+              Balance: ₹{Number(r.balance || 0).toFixed(2)}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Last activity:{" "}
+              {r.last_activity
+                ? new Date(r.last_activity).toLocaleString()
+                : "-"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* DESKTOP TABLE */}
+      <div className="hidden md:block bg-white rounded shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-100">
+            <tr>
+              {[
+                "Owner",
+                "Total Credit",
+                "Total Paid",
+                "Balance",
+                "Last Activity",
+              ].map((h) => (
+                <th key={h} className="p-2 text-left">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedData.map((r) => (
+              <tr key={r.owner_id} className="border-b">
+                <td className="p-2">{r.owner_name}</td>
+                <td className="p-2">
+                  ₹{Number(r.total_credit || 0).toFixed(2)}
+                </td>
+                <td className="p-2">
+                  ₹{Number(r.total_debit || 0).toFixed(2)}
+                </td>
+                <td className="p-2 font-semibold">
+                  ₹{Number(r.balance || 0).toFixed(2)}
+                </td>
+                <td className="p-2">
+                  {r.last_activity
+                    ? new Date(r.last_activity).toLocaleString()
+                    : "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {loading && <p className="mt-3">Loading reports…</p>}
     </div>
   );
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.5rem",
-  marginTop: "0.25rem",
-  borderRadius: "4px",
-  border: "1px solid #cbd5e1",
-};
-
-const thS = {
-  textAlign: "left",
-  borderBottom: "1px solid #e5e7eb",
-  padding: "0.4rem",
-};
-
-const tdS = {
-  borderBottom: "1px solid #f1f5f9",
-  padding: "0.4rem",
-};
 
 export default ReportsPage;
