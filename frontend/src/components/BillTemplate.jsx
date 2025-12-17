@@ -91,9 +91,25 @@ function BillTemplate({ data }) {
                     const name = (item.material_name || "").toLowerCase();
                     const isCement = name.includes("cement");
                     if (isCement) return qtyDisplay(item.quantity);
-                    return item.unitType === "perukam"
-                      ? item.mattam || ""
-                      : `மட்டம்${item.mattam ? ` + ${item.mattam}` : ""}`;
+
+                    const mattamRaw = item.mattam;
+                    const mattamStr =
+                      mattamRaw == null ? "" : String(mattamRaw).trim();
+
+                    // empty input -> show the label
+                    if (mattamStr === "") return "மட்டம்";
+
+                    const mattamNum = Number(mattamStr);
+                    // numeric input handling
+                    if (Number.isFinite(mattamNum)) {
+                      // user entered 0 -> show whole quantity
+                      if (mattamNum === 0) return qtyDisplay(item.quantity);
+                      // positive number -> 'மட்டம் + N'
+                      return `மட்டம் + ${Math.round(mattamNum)}`;
+                    }
+
+                    // fallback: show raw value
+                    return mattamStr;
                   })()}
                 </div>
               </div>
