@@ -41,43 +41,27 @@ export function exportToCsv(filename, rows, columns, options = {}) {
 
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-  // 🔹 Highlight FINAL BALANCE cell (last row, last column)
-  const totalRows = wsData.length;
-  const totalCol = columns.length;
+    // 🔹 HIGHLIGHT FINAL PAYABLE (LATEST TRANSACTION)
+  const firstDataRowIndex = title ? 3 : 1;
+  const balanceColIndex = columns.length - 1;
 
-  // Row index of last data row
-  // rows:
-  // 0 → title
-  // 1 → empty
-  // 2 → header
-  // 3..n → data
-  const lastRowIndex = totalRows - 1;
-  const lastColIndex = totalCol - 1;
-
-  // Cell reference (e.g., I10)
-  const finalCellRef = XLSX.utils.encode_cell({
-    r: lastRowIndex,
-    c: lastColIndex,
+  const balanceCellRef = XLSX.utils.encode_cell({
+    r: firstDataRowIndex,
+    c: balanceColIndex,
   });
 
-  const finalBalanceCell = worksheet[finalCellRef];
-
-  if (finalBalanceCell) {
-    const balanceValue = Number(finalBalanceCell.v || 0);
-
-    finalBalanceCell.s = {
+  if (worksheet[balanceCellRef]) {
+    worksheet[balanceCellRef].s = {
       font: {
         bold: true,
-        sz: 14,
-      },
-      alignment: {
-        horizontal: "right",
-        vertical: "center",
+        sz:16,
+        color: { rgb: "7C2D12" }, // dark brown/red
       },
       fill: {
-        fgColor: {
-          rgb: balanceValue >= 0 ? "C6EFCE" : "FFC7CE", // green / red
-        },
+        fgColor: { rgb: "FEF3C7" }, // light amber
+      },
+      alignment: {
+        horizontal: "center",
       },
       border: {
         top: { style: "medium" },
@@ -87,6 +71,7 @@ export function exportToCsv(filename, rows, columns, options = {}) {
       },
     };
   }
+
 
   const totalCols = columns.length - 1;
 

@@ -97,10 +97,22 @@ function BillTemplate({ data }) {
           <span className="amount">₹ {totalAmount}</span>
         </div>
 
-        <div className="slip-separator dotted" /> 
+        <div className="slip-separator dotted" />
+
+        {/* Large Mattam Display */}
+        <div className="slip-mattam-large">
+          <span className="mattam-text">
+            மட்டம்
+            {items.some((item) => item.mattam)
+              ? ` + ${items[0]?.mattam || ""}`
+              : ""}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
 export default BillTemplate;
+
+/* Added slip-mattam-large class for large display */

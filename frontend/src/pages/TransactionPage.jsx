@@ -10,7 +10,9 @@ function TransactionPage() {
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [ownerSearch, setOwnerSearch] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
-  const [items, setItems] = useState([{ materialId: "", quantity: "" }]);
+  const [items, setItems] = useState([
+    { materialId: "", quantity: "", mattam: "" },
+  ]);
 
   const [submitting, setSubmitting] = useState(false);
   const [bill, setBill] = useState(null);
@@ -79,10 +81,19 @@ function TransactionPage() {
           material_name:
             materials.find((m) => m.material_id === it.material_id)?.name ||
             "Material",
+          mattam:
+            validItems.find(
+              (vi) => String(vi.materialId) === String(it.material_id)
+            )?.mattam || "",
         })),
       });
 
-      setItems([{ materialId: "", quantity: "" }]);
+      // Clear the form fields after successful bill generation
+      setItems([{ materialId: "", quantity: "", mattam: "" }]);
+      setSelectedOwner(null);
+      setOwnerSearch("");
+      setVehicleNumber("");
+      setError("");
     } catch {
       setError("Failed to create bill");
     } finally {
@@ -146,9 +157,7 @@ function TransactionPage() {
               <label className="block font-medium mb-1">Vehicle Number</label>
               <input
                 value={vehicleNumber}
-                onChange={(e) =>
-                  setVehicleNumber(e.target.value.toUpperCase())
-                }
+                onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
                 placeholder="TN-00-XXXX"
                 className="w-full border rounded px-3 py-2"
               />
@@ -166,8 +175,10 @@ function TransactionPage() {
                   <tr>
                     <th className="p-2 text-left">Material</th>
                     <th className="p-2 text-left">Qty</th>
+                    <th className="p-2 text-left">Mattam</th>
                     <th className="p-2 text-left">Rate</th>
                     <th className="p-2 text-left">Total</th>
+                    <th className="p-2 text-left">Delete </th>
                     <th />
                   </tr>
                 </thead>
@@ -214,6 +225,22 @@ function TransactionPage() {
                         />
                       </td>
 
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={row.mattam}
+                          onChange={(e) =>
+                            setItems((p) =>
+                              p.map((x, idx) =>
+                                idx === i ? { ...x, mattam: e.target.value } : x
+                              )
+                            )
+                          }
+                          placeholder="0"
+                          className="w-full border rounded px-2 py-1"
+                        />
+                      </td>
+
                       <td className="p-2">₹{row.rate.toFixed(2)}</td>
                       <td className="p-2 font-medium">
                         ₹{row.lineTotal.toFixed(2)}
@@ -226,7 +253,7 @@ function TransactionPage() {
                             onClick={() =>
                               setItems(items.filter((_, idx) => idx !== i))
                             }
-                            className="text-red-600 font-bold"
+                            className="text-red-600 font-bold bg-red-100 px-2 rounded border-1 "
                           >
                             ✕
                           </button>
@@ -241,7 +268,10 @@ function TransactionPage() {
             <button
               type="button"
               onClick={() =>
-                setItems([...items, { materialId: "", quantity: "" }])
+                setItems([
+                  ...items,
+                  { materialId: "", quantity: "", mattam: "" },
+                ])
               }
               className="mt-5 px-2 py-1 border border-indigo-600 bg-indigo-100 rounded text-sm"
             >
