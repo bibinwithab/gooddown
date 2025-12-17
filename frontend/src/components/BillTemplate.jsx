@@ -12,6 +12,12 @@ function BillTemplate({ data }) {
 
   const { bill, items, owner_name } = data;
 
+  const qtyDisplay = (q) => {
+    const n = Number(q);
+    if (Number.isFinite(n)) return String(Math.round(n));
+    return q ?? "";
+  };
+
   const billDate = bill?.bill_timestamp
     ? new Date(bill.bill_timestamp)
     : new Date();
@@ -74,17 +80,35 @@ function BillTemplate({ data }) {
           </div>
 
           {items.map((item, idx) => (
-            <div className="slip-item-row" key={item.transaction_id || idx}>
-              <span className="col-material">
-                {idx + 1}. {item.material_name}
-              </span>
-              <span className="col-qty">{item.quantity}</span>
-              <span className="col-rate">
-                {Number(item.rate_at_sale).toFixed(0)}
-              </span>
-              <span className="col-amt">
-                {Number(item.total_cost).toFixed(0)}
-              </span>
+            <div
+              className="slip-item-row item-block"
+              key={item.transaction_id || idx}
+            >
+              <div className="item-block-left">
+                <div className="item-material">{item.material_name}</div>
+                <div className="item-mattam">
+                  {(() => {
+                    const name = (item.material_name || "").toLowerCase();
+                    const isCement = name.includes("cement");
+                    if (isCement) return qtyDisplay(item.quantity);
+                    return item.unitType === "perukam"
+                      ? item.mattam || ""
+                      : `மட்டம்${item.mattam ? ` + ${item.mattam}` : ""}`;
+                  })()}
+                </div>
+              </div>
+
+              <div className="item-block-right">
+                <div className="small-row">
+                  Qty: <strong>{qtyDisplay(item.quantity)}</strong>
+                </div>
+                <div className="small-row">
+                  Rate: <strong>₹{Number(item.rate_at_sale).toFixed(0)}</strong>
+                </div>
+                <div className="small-row">
+                  Amt: <strong>₹{Number(item.total_cost).toFixed(0)}</strong>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -98,16 +122,6 @@ function BillTemplate({ data }) {
         </div>
 
         <div className="slip-separator dotted" />
-
-        {/* Large Mattam Display */}
-        <div className="slip-mattam-large">
-          <span className="mattam-text">
-            மட்டம்
-            {items.some((item) => item.mattam)
-              ? ` + ${items[0]?.mattam || ""}`
-              : ""}
-          </span>
-        </div>
       </div>
     </div>
   );
