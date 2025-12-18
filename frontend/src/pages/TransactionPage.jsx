@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchMaterials, fetchOwners, createBill, createOwner } from "../api";
+import {
+  fetchMaterials,
+  fetchOwners,
+  createBill,
+  createOwner,
+  fetchVehiclesByOwner,
+} from "../api";
 import BillTemplate from "../components/BillTemplate";
 import "../components/BillTemplate.css";
 
@@ -21,6 +27,8 @@ function TransactionPage() {
   const [newOwnerName, setNewOwnerName] = useState("");
   const [newOwnerContact, setNewOwnerContact] = useState("");
   const [creatingOwner, setCreatingOwner] = useState(false);
+  const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchMaterials(), fetchOwners()])
@@ -52,6 +60,20 @@ function TransactionPage() {
   });
 
   const billTotal = computedItems.reduce((s, i) => s + i.lineTotal, 0);
+
+  const loadVehicleSuggestions = async (value) => {
+    if (!selectedOwner || !value) {
+      setVehicleSuggestions([]);
+      return;
+    }
+
+    try {
+      const res = await fetchVehiclesByOwner(selectedOwner.owner_id, value);
+      setVehicleSuggestions(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,6 +174,8 @@ function TransactionPage() {
                       onClick={() => {
                         setSelectedOwner(o);
                         setOwnerSearch(o.name);
+                        setVehicleNumber("");
+                        setVehicleSuggestions([]);
                       }}
                       className="px-3 py-2 cursor-pointer hover:bg-slate-100"
                     >
@@ -232,14 +256,44 @@ function TransactionPage() {
               )}
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block font-medium mb-1">Vehicle Number</label>
+
               <input
                 value={vehicleNumber}
-                onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase();
+                  setVehicleNumber(val);
+                  loadVehicleSuggestions(val);
+                  setShowVehicleDropdown(true);
+                }}
+                onFocus={() => {
+                  if (vehicleNumber) setShowVehicleDropdown(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowVehicleDropdown(false), 150);
+                }}
                 placeholder="TN-00-XXXX"
                 className="w-full border rounded px-3 py-2"
               />
+
+              {/* 🔽 Vehicle suggestions */}
+              {showVehicleDropdown && vehicleSuggestions.length > 0 && (
+                <div className="absolute z-20 w-full bg-white border rounded shadow mt-1 max-h-48 overflow-y-auto">
+                  {vehicleSuggestions.map((v, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setVehicleNumber(v.vehicle_number);
+                        setShowVehicleDropdown(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-slate-100"
+                    >
+                      {v.vehicle_number}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

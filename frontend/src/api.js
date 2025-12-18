@@ -38,4 +38,11 @@ export const fetchPaymentLedger = (ownerId) =>
 
 export const createPayment = (ownerId, payload) =>
   api.post(`/owners/${ownerId}/payments`, payload);
+
+// Vehicles
+export const fetchVehiclesByOwner = (ownerId, query = "") =>
+  api.get("/vehicles", {
+    params: { owner_id: ownerId, q: query },
+  });
+
 export default api;

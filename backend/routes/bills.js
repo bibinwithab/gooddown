@@ -19,9 +19,23 @@ const router = Router();
 router.post("/", async (req, res) => {
   const { owner_id, vehicle_number, items } = req.body;
 
-  if (!owner_id || !vehicle_number || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "owner_id, vehicle_number and at least one item are required" });
+  if (
+    !owner_id ||
+    !vehicle_number ||
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
+    return res
+      .status(400)
+      .json({
+        error: "owner_id, vehicle_number and at least one item are required",
+      });
   }
+
+  const normalizedVehicle = vehicle_number
+  .toUpperCase()
+  .replace(/\s+/g, "")
+  .replace(/--+/g, "-");
 
   const client = await pool.connect();
   try {
@@ -58,7 +72,7 @@ router.post("/", async (req, res) => {
       lineItems.push({
         owner_id,
         material_id: item.material_id,
-        vehicle_number,
+        normalizedVehicle,
         quantity: qty,
         rate_at_sale: rate,
         total_cost: lineTotal,
@@ -70,7 +84,7 @@ router.post("/", async (req, res) => {
       `INSERT INTO bills (owner_id, vehicle_number, total_amount)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [owner_id, vehicle_number, billTotal]
+      [owner_id, normalizedVehicle, billTotal]
     );
 
     const bill = billResult.rows[0];
@@ -92,7 +106,7 @@ router.post("/", async (req, res) => {
         [
           li.owner_id,
           li.material_id,
-          li.vehicle_number,
+          li.normalizedVehicle,
           li.quantity,
           li.rate_at_sale,
           li.total_cost,
@@ -101,6 +115,16 @@ router.post("/", async (req, res) => {
       );
       insertedItems.push(itemRes.rows[0]);
     }
+
+    await pool.query(
+      `
+  INSERT INTO vehicles (owner_id, vehicle_number)
+  VALUES ($1, $2)
+  ON CONFLICT (owner_id, vehicle_number)
+  DO UPDATE SET last_used_at = NOW()
+  `,
+      [owner_id, normalizedVehicle]
+    );
 
     await client.query("COMMIT");
 
