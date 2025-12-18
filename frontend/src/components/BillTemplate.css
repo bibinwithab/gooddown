@@ -52,8 +52,16 @@
 }
 
 .slip-meta > div {
-  display: flex;
+  display: inline;
   justify-content: space-between;
+}
+
+.slip-datetime {
+  float: right;
+}
+
+.slip-datetime span {
+  margin-left: 12px;
 }
 
 /* Owner & vehicle */

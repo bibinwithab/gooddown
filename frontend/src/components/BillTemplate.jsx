@@ -1,10 +1,8 @@
 // src/components/BillTemplate.jsx
 
-function formatBillNumber(billId, timestamp) {
-  const year = new Date(timestamp || Date.now()).getFullYear();
+function formatBillNumber(billId) {
   const padded = String(billId).padStart(4, "0");
-  // JA = Jobin Agency
-  return `JA-${year}-${padded}`;
+  return padded;
 }
 
 function BillTemplate({ data }) {
@@ -41,15 +39,12 @@ function BillTemplate({ data }) {
         {/* Bill meta */}
         <div className="slip-meta">
           <div>
-            <span className="label">Bill No:</span>
-            <span>{formatBillNumber(bill.bill_id, bill.bill_timestamp)}</span>
+            <span className="label">No:</span>
+            <span>{formatBillNumber(bill.bill_id)}</span>
           </div>
-          <div>
-            <span className="label">Date:</span>
+          <div className="slip-datetime">
             <span>{formattedDate}</span>
-          </div>
-          <div>
-            <span className="label">Time:</span>
+
             <span>{formattedTime}</span>
           </div>
         </div>
@@ -72,12 +67,12 @@ function BillTemplate({ data }) {
 
         {/* Items list */}
         <div className="slip-items">
-          <div className="slip-items-header">
+          {/* <div className="slip-items-header">
             <span className="col-material">Material</span>
             <span className="col-qty">Qty</span>
             <span className="col-rate">Rate</span>
             <span className="col-amt">Amt</span>
-          </div>
+          </div> */}
 
           {items.map((item, idx) => (
             <div
