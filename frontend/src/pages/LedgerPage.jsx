@@ -24,11 +24,7 @@ function LedgerPage() {
     setLoading(true);
     try {
       const res = await fetchPaymentLedger(ownerId);
-      const sorted = [...(res.data || [])].sort(
-        (a, b) => new Date(b.entry_date) - new Date(a.entry_date)
-      );
-
-      setLedger(sorted);
+      setLedger(res.data || []);
     } finally {
       setLoading(false);
     }
@@ -48,8 +44,20 @@ function LedgerPage() {
     return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
   };
 
-  const latestBalance =
-    ledger.length > 0 ? Number(ledger[0].balance || 0) : 0;
+  const latestBalance = () => {
+    if (ledger.length === 0) return 0;
+    // Get the most recent timestamp
+    const mostRecentDate = ledger[0].entry_date;
+    // Filter entries with the most recent date and get the max balance
+    const recentEntries = ledger.filter(
+      (row) => row.entry_date === mostRecentDate
+    );
+    return Number(
+      Math.max(...recentEntries.map((row) => Number(row.balance || 0)))
+    );
+  };
+
+  const displayBalance = latestBalance();
 
   const handleRecordPayment = async (e) => {
     e.preventDefault();
@@ -82,9 +90,7 @@ function LedgerPage() {
     exportToCsv(
       `Ledger_${ownerName.replace(/\s+/g, "_")}`,
       ledger.map((row) => ({
-        date_time: row.entry_date
-          ? formatDateDMY(row.entry_date)
-          : "",
+        date_time: row.entry_date ? formatDateDMY(row.entry_date) : "",
         vehicle_number: row.vehicle_number || "",
         material:
           row.entry_type === "CREDIT"
@@ -188,7 +194,7 @@ function LedgerPage() {
       {/* BALANCE + EXPORT */}
       {ledger.length > 0 && (
         <div className="flex justify-between items-center mb-2">
-          <strong>Outstanding Balance: ₹{latestBalance.toFixed(2)}</strong>
+          <strong>Outstanding Balance: ₹{displayBalance.toFixed(2)}</strong>
           <button
             onClick={handleExportLedger}
             className="border px-3 py-1 rounded bg-blue-50 text-sm"
@@ -202,9 +208,7 @@ function LedgerPage() {
       <div className="space-y-3 md:hidden">
         {ledger.map((row, i) => (
           <div key={i} className="bg-white rounded shadow p-3 text-sm">
-            <div className="font-semibold">
-              {formatDateDMY(row.entry_date)}
-            </div>
+            <div className="font-semibold">{formatDateDMY(row.entry_date)}</div>
             <div>Vehicle: {row.vehicle_number || "-"}</div>
             <div>Material: {row.material_name}</div>
             <div>Qty: {row.quantity ?? "-"}</div>
@@ -244,9 +248,7 @@ function LedgerPage() {
           <tbody>
             {ledger.map((row, i) => (
               <tr key={i} className="border-b">
-                <td className="p-2">
-                  {formatDateDMY(row.entry_date)}
-                </td>
+                <td className="p-2">{formatDateDMY(row.entry_date)}</td>
                 <td className="p-2">{row.vehicle_number || "-"}</td>
                 <td className="p-2">{row.material_name}</td>
                 <td className="p-2">{row.quantity ?? "-"}</td>
