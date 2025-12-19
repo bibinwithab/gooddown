@@ -66,7 +66,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
               ELSE -amount
             END
           ) OVER (
-            ORDER BY entry_date ASC, entry_type DESC, id DESC
+            ORDER BY entry_date ASC, entry_type DESC, id ASC
           ) AS balance
 
         FROM ledger_base

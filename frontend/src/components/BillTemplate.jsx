@@ -44,7 +44,6 @@ function BillTemplate({ data }) {
           </div>
           <div className="slip-datetime">
             <span>{formattedDate}</span>
-
             <span>{formattedTime}</span>
           </div>
         </div>
@@ -67,13 +66,6 @@ function BillTemplate({ data }) {
 
         {/* Items list */}
         <div className="slip-items">
-          {/* <div className="slip-items-header">
-            <span className="col-material">Material</span>
-            <span className="col-qty">Qty</span>
-            <span className="col-rate">Rate</span>
-            <span className="col-amt">Amt</span>
-          </div> */}
-
           {items.map((item, idx) => (
             <div
               className="slip-item-row item-block"
@@ -83,27 +75,33 @@ function BillTemplate({ data }) {
                 <div className="item-material">{item.material_name}</div>
                 <div className="item-mattam">
                   {(() => {
-                    const name = (item.material_name || "").toLowerCase();
-                    const isCement = name.includes("cement");
-                    if (isCement) return qtyDisplay(item.quantity);
+                    const name = (item.material_name || "").toUpperCase();
+                    const unit = (item.unit || "").toUpperCase();
+                    
+                    // Logic: If it's a countable item (Unit is NO) 
+                    // or the name implies it's a countable item (BRICKS, STONE, CEMENT)
+                    const isNoUnit = unit === "NO" || 
+                                     name.includes("BRICKS") || 
+                                     name.includes("STONE") || 
+                                     name.includes("CEMENT");
 
+                    if (isNoUnit) {
+                      return qtyDisplay(item.quantity);
+                    }
+
+                    // Standard Mattam logic for Sand/Dust
                     const mattamRaw = item.mattam;
-                    const mattamStr =
-                      mattamRaw == null ? "" : String(mattamRaw).trim();
+                    const mattamStr = mattamRaw == null ? "" : String(mattamRaw).trim();
 
-                    // empty input -> show the label
+                    // If it's empty and NOT a "NO" unit item, show label
                     if (mattamStr === "") return "மட்டம்";
 
                     const mattamNum = Number(mattamStr);
-                    // numeric input handling
                     if (Number.isFinite(mattamNum)) {
-                      // user entered 0 -> show whole quantity
                       if (mattamNum === 0) return qtyDisplay(item.quantity);
-                      // positive number -> 'மட்டம் + N'
                       return `மட்டம் + ${Math.round(mattamNum)}`;
                     }
 
-                    // fallback: show raw value
                     return mattamStr;
                   })()}
                 </div>
@@ -139,5 +137,3 @@ function BillTemplate({ data }) {
 }
 
 export default BillTemplate;
-
-/* Added slip-mattam-large class for large display */
