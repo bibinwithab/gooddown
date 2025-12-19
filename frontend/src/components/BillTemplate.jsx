@@ -1,16 +1,20 @@
 // src/components/BillTemplate.jsx
 
-function formatBillNumber(billId, timestamp) {
-  const year = new Date(timestamp || Date.now()).getFullYear();
+function formatBillNumber(billId) {
   const padded = String(billId).padStart(4, "0");
-  // JA = Jobin Agency
-  return `JA-${year}-${padded}`;
+  return padded;
 }
 
 function BillTemplate({ data }) {
   if (!data) return null;
 
   const { bill, items, owner_name } = data;
+
+  const qtyDisplay = (q) => {
+    const n = Number(q);
+    if (Number.isFinite(n)) return String(Math.round(n));
+    return q ?? "";
+  };
 
   const billDate = bill?.bill_timestamp
     ? new Date(bill.bill_timestamp)
@@ -29,28 +33,17 @@ function BillTemplate({ data }) {
       <div className="slip-paper">
         {/* Header */}
         <div className="slip-header">
-          <h1>JOBIN AGENCY</h1>
-          <p>Construction Material &amp; Transport Services</p>
-
-          {/* ⬇️ Replace this with your real address */}
-          <p>Goodown Road, Nagercoil – 629001</p>
-
-          {/* ⬇️ Replace with your actual GSTIN */}
-          <p>GSTIN: 33ABCDE1234F1Z5</p>
+          <h1>JOBIN AGENCIES</h1>
         </div>
 
         {/* Bill meta */}
         <div className="slip-meta">
           <div>
-            <span className="label">Bill No:</span>
-            <span>{formatBillNumber(bill.bill_id, bill.bill_timestamp)}</span>
+            <span className="label">No:</span>
+            <span>{formatBillNumber(bill.bill_id)}</span>
           </div>
-          <div>
-            <span className="label">Date:</span>
+          <div className="slip-datetime">
             <span>{formattedDate}</span>
-          </div>
-          <div>
-            <span className="label">Time:</span>
             <span>{formattedTime}</span>
           </div>
         </div>
@@ -73,25 +66,58 @@ function BillTemplate({ data }) {
 
         {/* Items list */}
         <div className="slip-items">
-          <div className="slip-items-header">
-            <span className="col-material">Material</span>
-            <span className="col-qty">Qty</span>
-            <span className="col-rate">Rate</span>
-            <span className="col-amt">Amt</span>
-          </div>
-
           {items.map((item, idx) => (
-            <div className="slip-item-row" key={item.transaction_id || idx}>
-              <span className="col-material">
-                {idx + 1}. {item.material_name}
-              </span>
-              <span className="col-qty">{item.quantity}</span>
-              <span className="col-rate">
-                {Number(item.rate_at_sale).toFixed(0)}
-              </span>
-              <span className="col-amt">
-                {Number(item.total_cost).toFixed(0)}
-              </span>
+            <div
+              className="slip-item-row item-block"
+              key={item.transaction_id || idx}
+            >
+              <div className="item-block-left">
+                <div className="item-material">{item.material_name}</div>
+                <div className="item-mattam">
+                  {(() => {
+                    const name = (item.material_name || "").toUpperCase();
+                    const unit = (item.unit || "").toUpperCase();
+                    
+                    // Logic: If it's a countable item (Unit is NO) 
+                    // or the name implies it's a countable item (BRICKS, STONE, CEMENT)
+                    const isNoUnit = unit === "NO" || 
+                                     name.includes("BRICKS") || 
+                                     name.includes("STONE") || 
+                                     name.includes("CEMENT");
+
+                    if (isNoUnit) {
+                      return qtyDisplay(item.quantity);
+                    }
+
+                    // Standard Mattam logic for Sand/Dust
+                    const mattamRaw = item.mattam;
+                    const mattamStr = mattamRaw == null ? "" : String(mattamRaw).trim();
+
+                    // If it's empty and NOT a "NO" unit item, show label
+                    if (mattamStr === "") return "மட்டம்";
+
+                    const mattamNum = Number(mattamStr);
+                    if (Number.isFinite(mattamNum)) {
+                      if (mattamNum === 0) return qtyDisplay(item.quantity);
+                      return `மட்டம் + ${Math.round(mattamNum)}`;
+                    }
+
+                    return mattamStr;
+                  })()}
+                </div>
+              </div>
+
+              <div className="item-block-right">
+                <div className="small-row">
+                  Qty: <strong>{qtyDisplay(item.quantity)}</strong>
+                </div>
+                <div className="small-row">
+                  Rate: <strong>₹{Number(item.rate_at_sale).toFixed(0)}</strong>
+                </div>
+                <div className="small-row">
+                  Amt: <strong>₹{Number(item.total_cost).toFixed(0)}</strong>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -105,16 +131,6 @@ function BillTemplate({ data }) {
         </div>
 
         <div className="slip-separator dotted" />
-
-        {/* Footer */}
-        <div className="slip-footer">
-          <p>Amount credited to owner ledger.</p>
-          <p>** Computer generated bill **</p>
-          <div className="slip-sign">
-            <div className="sign-line" />
-            <div>Authorized</div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -6,39 +6,61 @@ const router = Router();
 
 /**
  * GET /api/reports/owners-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
- * Returns: [{ owner_id, owner_name, total_payable }]
+ * Returns: [{ owner_id, owner_name, total_credit, total_debit, balance, last_activity }]
  */
 router.get("/owners-summary", async (req, res) => {
   try {
     let { from, to } = req.query;
 
-    // Helper: get today's date in YYYY-MM-DD (local time)
     const getToday = () => new Date().toISOString().slice(0, 10);
 
-    // 👇 Default behaviour: DAILY report for today
+    // Default: today only
     if (!from && !to) {
       const today = getToday();
       from = today;
       to = today;
     } else if (!from && to) {
-      // only "to" provided → use same day
       from = to;
     } else if (from && !to) {
-      // only "from" provided → use same day
       to = from;
     }
 
     const result = await pool.query(
       `
+      WITH credit AS (
+        SELECT
+          owner_id,
+          COALESCE(SUM(total_cost), 0) AS total_credit,
+          MAX(transaction_timestamp)    AS last_tx
+        FROM transactions
+        WHERE transaction_timestamp::date BETWEEN $1 AND $2
+        GROUP BY owner_id
+      ),
+      debit AS (
+        SELECT
+          owner_id,
+          COALESCE(SUM(amount), 0) AS total_debit,
+          MAX(payment_date)        AS last_pay
+        FROM owner_payments
+        WHERE payment_date::date BETWEEN $1 AND $2
+        GROUP BY owner_id
+      )
       SELECT
         vo.owner_id,
         vo.name AS owner_name,
-        COALESCE(SUM(t.total_cost), 0) AS total_payable
+        COALESCE(c.total_credit, 0) AS total_credit,
+        COALESCE(d.total_debit, 0) AS total_debit,
+        COALESCE(c.total_credit, 0) - COALESCE(d.total_debit, 0) AS balance,
+        -- latest activity in this period (either last transaction or last payment)
+        CASE
+          WHEN c.last_tx IS NULL AND d.last_pay IS NULL THEN NULL
+          WHEN c.last_tx IS NULL THEN d.last_pay
+          WHEN d.last_pay IS NULL THEN c.last_tx
+          ELSE GREATEST(c.last_tx, d.last_pay)
+        END AS last_activity
       FROM vehicle_owners vo
-      LEFT JOIN transactions t
-        ON t.owner_id = vo.owner_id
-       AND t.transaction_timestamp::date BETWEEN $1 AND $2
-      GROUP BY vo.owner_id, vo.name
+      LEFT JOIN credit c ON c.owner_id = vo.owner_id
+      LEFT JOIN debit  d ON d.owner_id = vo.owner_id
       ORDER BY vo.name ASC
       `,
       [from, to]

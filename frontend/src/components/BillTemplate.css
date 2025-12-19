@@ -14,14 +14,15 @@
   - To use 58mm rolls, change width to 58mm.
 */
 .slip-paper {
-  width: 80mm;              /* ← change to 58mm for 58mm rolls */
-  min-height: 100mm;        /* grows with content */
+  width: 80mm; /* ← change to 58mm for 58mm rolls */
+  min-height: 120mm; /* grows with content */
   background: #ffffff;
-  padding: 5mm 4mm;
+  padding: 6mm 5mm;
   border: 1px solid #cbd5e1;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 10px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 12px;
   color: #0f172a;
   box-sizing: border-box;
 }
@@ -33,31 +34,40 @@
 }
 
 .slip-header h1 {
-  font-size: 14px;
+  font-size: 22px;
+  font-weight: 800;
   margin: 0;
   letter-spacing: 0.5px;
 }
 
 .slip-header p {
-  margin: 1px 0;
-  font-size: 8.5px;
+  margin: 2px 0;
+  font-size: 14px;
 }
 
 /* Meta info */
 .slip-meta {
-  font-size: 8.5px;
-  margin-bottom: 2mm;
+  font-size: 14px;
+  margin-bottom: 3mm;
 }
 
 .slip-meta > div {
-  display: flex;
+  display: inline;
   justify-content: space-between;
+}
+
+.slip-datetime {
+  float: right;
+}
+
+.slip-datetime span {
+  margin-left: 12px;
 }
 
 /* Owner & vehicle */
 .slip-party {
-  font-size: 8.5px;
-  margin-bottom: 2mm;
+  font-size: 14px;
+  margin-bottom: 3mm;
 }
 
 .slip-party > div {
@@ -66,8 +76,9 @@
 }
 
 .label {
-  font-weight: 600;
-  margin-right: 4px;
+  font-weight: 700;
+  margin-right: 6px;
+  font-size: 14px;
 }
 
 /* Separators */
@@ -82,7 +93,7 @@
 
 /* Items list */
 .slip-items {
-  font-size: 8.5px;
+  font-size: 16px;
 }
 
 .slip-items-header,
@@ -92,14 +103,50 @@
 }
 
 .slip-items-header {
-  font-weight: 600;
+  font-weight: 700;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 1px;
-  margin-bottom: 1px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
 }
 
 .slip-item-row {
-  padding: 1px 0;
+  padding: 10px 0;
+}
+
+/* New item block layout */
+.item-block {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.item-block-left {
+  flex: 1.6;
+  text-align: center;
+}
+
+.item-material {
+  font-size: 30px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.item-mattam {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.item-block-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.small-row {
+  font-size: 16px;
 }
 
 /* Columns (flex-based) */
@@ -110,6 +157,12 @@
 .col-qty {
   flex: 0.7;
   text-align: right;
+}
+
+.col-mattam {
+  flex: 1.2;
+  text-align: center;
+  font-size: 14px;
 }
 
 .col-rate {
@@ -126,13 +179,32 @@
 .slip-total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 900;
 }
 
 .slip-total-row .amount {
   min-width: 35mm;
   text-align: right;
+}
+
+/* Large Mattam Display */
+.slip-mattam-large {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30mm;
+  margin-top: 3mm;
+  padding: 3mm;
+}
+
+.mattam-text {
+  font-size: 30px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.02;
+  word-wrap: break-word;
 }
 
 /* Footer */
