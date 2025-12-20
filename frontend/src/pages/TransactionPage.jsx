@@ -23,12 +23,14 @@ function TransactionPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [bill, setBill] = useState(null);
+  const [billPreview, setBillPreview] = useState(null);
   const [error, setError] = useState("");
   const [recordPayment, setRecordPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [paymentNote, setPaymentNote] = useState("");
   const [savingPayment, setSavingPayment] = useState(false);
+  const [isSavingBill, setIsSavingBill] = useState(false);
   const [showNewOwner, setShowNewOwner] = useState(false);
   const [newOwnerName, setNewOwnerName] = useState("");
   const [newOwnerContact, setNewOwnerContact] = useState("");
@@ -86,7 +88,7 @@ function TransactionPage() {
     setError("");
     setBill(null);
 
-    if (!selectedOwner) return setError("Select a vehicle owner");
+    if (!selectedOwner) return setError("Select a Customer");
     if (!vehicleNumber) return setError("Enter vehicle number");
 
     const validItems = computedItems.filter(
@@ -96,26 +98,64 @@ function TransactionPage() {
 
     try {
       setSubmitting(true);
-      const res = await createBill({
+
+      // Generate preview data WITHOUT saving to database
+      const previewData = {
         owner_id: selectedOwner.owner_id,
         vehicle_number: vehicleNumber,
         items: validItems.map((i) => ({
           material_id: Number(i.materialId),
+          quantity: Number(i.quantity),
+          material_name:
+            materials.find((m) => m.material_id === i.materialId)?.name ||
+            "Material",
+          rate_per_unit: i.rate,
+          amount: i.lineTotal,
+          mattam: i.mattam || "",
+        })),
+        total: validItems.reduce((s, i) => s + i.lineTotal, 0),
+      };
+
+      setBillPreview({
+        owner_name: selectedOwner.name,
+        items: previewData.items,
+        total: previewData.total,
+        vehicle_number: vehicleNumber,
+        owner_id: selectedOwner.owner_id,
+      });
+    } catch (err) {
+      console.error(err);
+      setError("Failed to generate bill preview");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveBill = async () => {
+    if (!billPreview) return;
+
+    try {
+      setIsSavingBill(true);
+      const res = await createBill({
+        owner_id: billPreview.owner_id,
+        vehicle_number: billPreview.vehicle_number,
+        items: billPreview.items.map((i) => ({
+          material_id: Number(i.material_id),
           quantity: Number(i.quantity),
         })),
       });
 
       setBill({
         bill: res.data.bill,
-        owner_name: selectedOwner.name,
+        owner_name: billPreview.owner_name,
         items: res.data.items.map((it) => ({
           ...it,
           material_name:
             materials.find((m) => m.material_id === it.material_id)?.name ||
             "Material",
           mattam:
-            validItems.find(
-              (vi) => String(vi.materialId) === String(it.material_id)
+            billPreview.items.find(
+              (vi) => Number(vi.material_id) === Number(it.material_id)
             )?.mattam || "",
         })),
       });
@@ -124,14 +164,14 @@ function TransactionPage() {
       if (recordPayment && Number(paymentAmount) > 0) {
         try {
           setSavingPayment(true);
-          await createPayment(selectedOwner.owner_id, {
+          await createPayment(billPreview.owner_id, {
             amount: Number(paymentAmount),
             mode: paymentMode,
             notes: paymentNote,
           });
         } catch (err) {
           console.error(err);
-          setError("Bill created but failed to record payment");
+          setError("Bill saved but failed to record payment");
         } finally {
           setSavingPayment(false);
         }
@@ -147,11 +187,13 @@ function TransactionPage() {
       setPaymentAmount("");
       setPaymentMode("CASH");
       setPaymentNote("");
+      setBillPreview(null);
       setError("");
-    } catch {
-      setError("Failed to create bill");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save bill");
     } finally {
-      setSubmitting(false);
+      setIsSavingBill(false);
     }
   };
 
@@ -173,7 +215,7 @@ function TransactionPage() {
           {/* OWNER + VEHICLE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <label className="block font-medium mb-1">Vehicle Owner</label>
+              <label className="block font-medium mb-1">Customer</label>
               <div className="flex gap-2">
                 <input
                   value={ownerSearch}
@@ -181,12 +223,12 @@ function TransactionPage() {
                     setOwnerSearch(e.target.value);
                     setSelectedOwner(null);
                   }}
-                  placeholder="Type owner name..."
+                  placeholder="Type Customer name..."
                   className="w-full border rounded px-3 py-2"
                 />
                 <button
                   type="button"
-                  title="Add owner"
+                  title="Add customer"
                   onClick={() => setShowNewOwner((s) => !s)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded"
                 >
@@ -489,22 +531,75 @@ function TransactionPage() {
 
           <button
             type="submit"
-            disabled={submitting || savingPayment}
-            className="bg-indigo-600 text-white px-6 py-2 rounded font-semibold"
+            disabled={submitting || billPreview}
+            className="bg-indigo-600 text-white px-6 py-2 rounded font-semibold disabled:bg-gray-400"
           >
-            {submitting || savingPayment ? "Saving..." : "Save & Generate Bill"}
+            {submitting ? "Generating Preview..." : "Preview Bill"}
           </button>
+
+          {billPreview && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-700 mb-2">
+                ✓ Bill preview generated. Review below and click{" "}
+                <strong>Save & Print</strong> to finalize.
+              </p>
+              <p className="text-xs text-blue-600">
+                You can make changes above and generate a new preview anytime.
+              </p>
+            </div>
+          )}
         </form>
       </div>
 
-      {/* PREVIEW */}
+      {/* PREVIEW SECTION */}
+      {billPreview && !bill && (
+        <>
+          <div className="flex justify-between items-center mt-6 mb-3">
+            <h2 className="text-lg font-semibold">Bill Preview</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveBill}
+                disabled={isSavingBill}
+                className="bg-green-600 text-white px-4 py-1 rounded font-semibold disabled:bg-gray-400"
+              >
+                {isSavingBill ? "Saving..." : "Save & Print"}
+              </button>
+              <button
+                onClick={() => {
+                  setBillPreview(null);
+                  setError("");
+                }}
+                className="border px-4 py-1 rounded bg-gray-100"
+              >
+                Back to Edit
+              </button>
+            </div>
+          </div>
+
+          <div id="print-area-wrapper">
+            <BillTemplate
+              data={{
+                bill: null,
+                owner_name: billPreview.owner_name,
+                items: billPreview.items,
+                total: billPreview.total,
+                vehicle_number: billPreview.vehicle_number,
+              }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* SAVED BILL SECTION */}
       {bill && (
         <>
-          <div className="flex justify-between items-center mt-4 mb-2">
-            <h2 className="text-lg font-semibold">Bill Preview</h2>
+          <div className="flex justify-between items-center mt-6 mb-3">
+            <h2 className="text-lg font-semibold">
+              Bill Saved & Ready to Print
+            </h2>
             <button
               onClick={() => window.print()}
-              className="border px-3 py-1 rounded bg-slate-100"
+              className="border px-3 py-1 rounded bg-blue-50 text-sm font-semibold"
             >
               Print Bill
             </button>

@@ -8,7 +8,7 @@ function formatBillNumber(billId) {
 function BillTemplate({ data }) {
   if (!data) return null;
 
-  const { bill, items, owner_name } = data;
+  const { bill, items, owner_name, total } = data;
 
   const qtyDisplay = (q) => {
     const n = Number(q);
@@ -26,7 +26,9 @@ function BillTemplate({ data }) {
     minute: "2-digit",
   });
 
-  const totalAmount = Number(bill.total_amount || 0).toFixed(2);
+  const totalAmount = bill
+    ? Number(bill.total_amount || 0).toFixed(2)
+    : Number(total || 0).toFixed(2);
 
   return (
     <div className="slip-wrapper">
@@ -40,7 +42,7 @@ function BillTemplate({ data }) {
         <div className="slip-meta">
           <div>
             <span className="label">No:</span>
-            <span>{formatBillNumber(bill.bill_id)}</span>
+            <span>{bill ? formatBillNumber(bill.bill_id) : "PREVIEW"}</span>
           </div>
           <div className="slip-datetime">
             <span>{formattedDate}</span>
@@ -58,7 +60,7 @@ function BillTemplate({ data }) {
           </div>
           <div>
             <span className="label">Vehicle:</span>
-            <span>{bill.vehicle_number}</span>
+            <span>{bill?.vehicle_number || data.vehicle_number || "-"}</span>
           </div>
         </div>
 
@@ -77,13 +79,14 @@ function BillTemplate({ data }) {
                   {(() => {
                     const name = (item.material_name || "").toUpperCase();
                     const unit = (item.unit || "").toUpperCase();
-                    
-                    // Logic: If it's a countable item (Unit is NO) 
+
+                    // Logic: If it's a countable item (Unit is NO)
                     // or the name implies it's a countable item (BRICKS, STONE, CEMENT)
-                    const isNoUnit = unit === "NO" || 
-                                     name.includes("BRICKS") || 
-                                     name.includes("STONE") || 
-                                     name.includes("CEMENT");
+                    const isNoUnit =
+                      unit === "NO" ||
+                      name.includes("BRICKS") ||
+                      name.includes("STONE") ||
+                      name.includes("CEMENT");
 
                     if (isNoUnit) {
                       return qtyDisplay(item.quantity);
@@ -91,7 +94,8 @@ function BillTemplate({ data }) {
 
                     // Standard Mattam logic for Sand/Dust
                     const mattamRaw = item.mattam;
-                    const mattamStr = mattamRaw == null ? "" : String(mattamRaw).trim();
+                    const mattamStr =
+                      mattamRaw == null ? "" : String(mattamRaw).trim();
 
                     // If it's empty and NOT a "NO" unit item, show label
                     if (mattamStr === "") return "மட்டம்";
