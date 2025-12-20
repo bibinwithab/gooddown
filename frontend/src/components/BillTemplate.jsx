@@ -77,6 +77,11 @@ function BillTemplate({ data }) {
                 <div className="item-material">{item.material_name}</div>
                 <div className="item-mattam">
                   {(() => {
+                    // If mattamDisplay is provided, use it directly
+                    if (item.mattamDisplay) {
+                      return item.mattamDisplay;
+                    }
+
                     const name = (item.material_name || "").toUpperCase();
                     const unit = (item.unit || "").toUpperCase();
 
@@ -103,7 +108,7 @@ function BillTemplate({ data }) {
                     const mattamNum = Number(mattamStr);
                     if (Number.isFinite(mattamNum)) {
                       if (mattamNum === 0) return qtyDisplay(item.quantity);
-                      return `மட்டம் + ${Math.round(mattamNum)}`;
+                      return "மட்டம்" + " + " + `${Math.round(mattamNum)}`;
                     }
 
                     return mattamStr;

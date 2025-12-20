@@ -18,7 +18,13 @@ function TransactionPage() {
   const [ownerSearch, setOwnerSearch] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [items, setItems] = useState([
-    { materialId: "", quantity: "", mattam: "" },
+    {
+      materialId: "",
+      quantity: "",
+      mattam: "",
+      grillMattam: false,
+      mattamChecked: false,
+    },
   ]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +70,18 @@ function TransactionPage() {
   const computedItems = items.map((it) => {
     const qty = Number(it.quantity) || 0;
     const rate = resolveRate(it.materialId);
-    return { ...it, rate, lineTotal: qty * rate };
+
+    // Determine mattam display text based on checkboxes and input
+    let mattamDisplay = "";
+    if (it.grillMattam) {
+      mattamDisplay = "கிரில் மட்டம்";
+    } else if (it.mattamChecked || !it.mattam) {
+      mattamDisplay = "மட்டம்";
+    } else {
+      mattamDisplay = `மட்டம் + ${it.mattam}`;
+    }
+
+    return { ...it, rate, lineTotal: qty * rate, mattamDisplay };
   });
 
   const billTotal = computedItems.reduce((s, i) => s + i.lineTotal, 0);
@@ -117,6 +134,9 @@ function TransactionPage() {
               (m) => String(m.material_id) === String(i.materialId)
             )?.unit || "UNIT",
           mattam: i.mattam || "",
+          mattamDisplay: i.mattamDisplay,
+          grillMattam: i.grillMattam,
+          mattamChecked: i.mattamChecked,
         })),
         total: validItems.reduce((s, i) => s + i.lineTotal, 0),
       };
@@ -166,6 +186,9 @@ function TransactionPage() {
             material_name: previewItem.material_name,
             unit: previewItem.unit,
             mattam: previewItem.mattam,
+            mattamDisplay: previewItem.mattamDisplay,
+            grillMattam: previewItem.grillMattam,
+            mattamChecked: previewItem.mattamChecked,
           };
         }),
       });
@@ -188,7 +211,15 @@ function TransactionPage() {
       }
 
       // Clear the form fields after successful bill generation
-      setItems([{ materialId: "", quantity: "", mattam: "" }]);
+      setItems([
+        {
+          materialId: "",
+          quantity: "",
+          mattam: "",
+          grillMattam: false,
+          mattamChecked: false,
+        },
+      ]);
       setSelectedOwner(null);
       setOwnerSearch("");
       setVehicleNumber("");
@@ -389,6 +420,7 @@ function TransactionPage() {
                     <th className="p-2 text-left">Material</th>
                     <th className="p-2 text-left">Qty</th>
                     <th className="p-2 text-left">Mattam</th>
+                    <th className="p-2 text-left">Options</th>
                     <th className="p-2 text-left">Rate</th>
                     <th className="p-2 text-left">Total</th>
                     <th className="p-2 text-left">Delete </th>
@@ -454,6 +486,48 @@ function TransactionPage() {
                         />
                       </td>
 
+                      <td className="p-2">
+                        <div className="space-y-1">
+                          <label className="inline-flex items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={row.grillMattam}
+                              onChange={(e) =>
+                                setItems((p) =>
+                                  p.map((x, idx) =>
+                                    idx === i
+                                      ? { ...x, grillMattam: e.target.checked }
+                                      : x
+                                  )
+                                )
+                              }
+                              className="w-4 h-4"
+                            />
+                            <span>கிரில் மட்டம்</span>
+                          </label>
+                          <label className="inline-flex items-center gap-2 text-xs block">
+                            <input
+                              type="checkbox"
+                              checked={row.mattamChecked}
+                              onChange={(e) =>
+                                setItems((p) =>
+                                  p.map((x, idx) =>
+                                    idx === i
+                                      ? {
+                                          ...x,
+                                          mattamChecked: e.target.checked,
+                                        }
+                                      : x
+                                  )
+                                )
+                              }
+                              className="w-4 h-4"
+                            />
+                            <span>மட்டம்</span>
+                          </label>
+                        </div>
+                      </td>
+
                       <td className="p-2">₹{row.rate.toFixed(2)}</td>
                       <td className="p-2 font-medium">
                         ₹{row.lineTotal.toFixed(2)}
@@ -483,7 +557,13 @@ function TransactionPage() {
               onClick={() =>
                 setItems([
                   ...items,
-                  { materialId: "", quantity: "", mattam: "" },
+                  {
+                    materialId: "",
+                    quantity: "",
+                    mattam: "",
+                    grillMattam: false,
+                    mattamChecked: false,
+                  },
                 ])
               }
               className="mt-5 px-2 py-1 border border-indigo-600 bg-indigo-100 rounded text-sm"
