@@ -10,6 +10,7 @@ import reportsRouter from "./routes/reports.js";
 import billsRouter from "./routes/bills.js";
 import vehiclesRouter from "./routes/vehicles.js";
 import ledgerRouter from "./routes/ledger.js";
+import weeklyReportsRouter from "./routes/weekly-reports.js";
 
 dotenv.config();
 
@@ -17,7 +18,6 @@ const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,6 +39,7 @@ app.use("/api/transactions", transactionsRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/bills", billsRouter);
 app.use("/api/vehicles", vehiclesRouter);
+app.use("/api", weeklyReportsRouter);
 app.use("/api", ledgerRouter);
 
 // ✅ Serve React build (static files)
@@ -57,6 +58,6 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0',() => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
 });

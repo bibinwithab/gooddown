@@ -9,6 +9,7 @@ import TransactionPage from "./pages/TransactionPage";
 import LedgerPage from "./pages/LedgerPage";
 import ReportsPage from "./pages/ReportsPage";
 import MasterDataPage from "./pages/MasterDataPage";
+import WeeklyReportPage from "./pages/WeeklyReportPage";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -68,6 +69,13 @@ function App() {
             >
               Master Data
             </NavLink>
+            <NavLink
+              to="/weekly-reports"
+              className={linkClass}
+              onClick={() => setSidebarOpen(false)}
+            >
+              Weekly Ledger
+            </NavLink>
           </nav>
         </aside>
 
@@ -104,6 +112,7 @@ function App() {
               <Route path="/" element={<TransactionPage />} />
               <Route path="/ledger" element={<LedgerPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/weekly-reports" element={<WeeklyReportPage />} />
               <Route path="/master-data" element={<MasterDataPage />} />
             </Routes>
           </main>
