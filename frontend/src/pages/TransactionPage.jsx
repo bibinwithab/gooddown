@@ -107,10 +107,15 @@ function TransactionPage() {
           material_id: Number(i.materialId),
           quantity: Number(i.quantity),
           material_name:
-            materials.find((m) => m.material_id === i.materialId)?.name ||
-            "Material",
-          rate_per_unit: i.rate,
-          amount: i.lineTotal,
+            materials.find(
+              (m) => String(m.material_id) === String(i.materialId)
+            )?.name || "Material",
+          rate_at_sale: i.rate,
+          total_cost: i.lineTotal,
+          unit:
+            materials.find(
+              (m) => String(m.material_id) === String(i.materialId)
+            )?.unit || "UNIT",
           mattam: i.mattam || "",
         })),
         total: validItems.reduce((s, i) => s + i.lineTotal, 0),
@@ -148,16 +153,21 @@ function TransactionPage() {
       setBill({
         bill: res.data.bill,
         owner_name: billPreview.owner_name,
-        items: res.data.items.map((it) => ({
-          ...it,
-          material_name:
-            materials.find((m) => m.material_id === it.material_id)?.name ||
-            "Material",
-          mattam:
-            billPreview.items.find(
-              (vi) => Number(vi.material_id) === Number(it.material_id)
-            )?.mattam || "",
-        })),
+        items: billPreview.items.map((previewItem) => {
+          const responseItem = res.data.items.find(
+            (ri) => Number(ri.material_id) === Number(previewItem.material_id)
+          );
+          return {
+            ...previewItem,
+            transaction_id: responseItem?.transaction_id,
+            rate_at_sale: previewItem.rate_at_sale,
+            total_cost: previewItem.total_cost,
+            quantity: previewItem.quantity,
+            material_name: previewItem.material_name,
+            unit: previewItem.unit,
+            mattam: previewItem.mattam,
+          };
+        }),
       });
 
       // If user opted to record payment immediately, call createPayment
