@@ -31,7 +31,7 @@ function ReportsPage() {
       setEffectiveFrom(res.data.from);
       setEffectiveTo(res.data.to);
     } catch {
-      setError("Failed to load owner accounts summary");
+      setError("Failed to load customer accounts summary");
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ function ReportsPage() {
   const handleExport = () => {
     if (!sortedData.length) return;
     exportToCsv(
-      `OwnerAccounts_${effectiveFrom}_to_${effectiveTo}`,
+      `CustomerAccounts_${effectiveFrom}_to_${effectiveTo}`,
       sortedData.map((r) => ({
         owner_name: r.owner_name,
         total_credit: Number(r.total_credit || 0).toFixed(2),
@@ -71,7 +71,7 @@ function ReportsPage() {
           : "",
       })),
       [
-        { label: "Owner Name", key: "owner_name" },
+        { label: "Customer Name", key: "owner_name" },
         { label: "Total Credit (₹)", key: "total_credit" },
         { label: "Total Paid (₹)", key: "total_debit" },
         { label: "Balance (₹)", key: "balance" },
@@ -83,7 +83,7 @@ function ReportsPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <h1 className="text-xl font-semibold mb-4">
-        Owner Accounts – Balance by Period
+        Customer Accounts – Balance by Period
       </h1>
 
       {/* FILTER */}
@@ -134,7 +134,7 @@ function ReportsPage() {
       {!loading && (
         <div className="flex flex-wrap gap-2 justify-between items-center mb-3 text-sm">
           <div className="text-xl">
-            <strong>Total Owners:</strong> {data.length} &nbsp;|&nbsp;
+            <strong>Total Customers:</strong> {data.length} &nbsp;|&nbsp;
             <strong>Credit:</strong> ₹{totals.credit.toFixed(2)} &nbsp;|&nbsp;
             <strong>Paid:</strong> ₹{totals.debit.toFixed(2)} &nbsp;|&nbsp;
             <strong>Balance:</strong> ₹{totals.balance.toFixed(2)}
@@ -189,7 +189,7 @@ function ReportsPage() {
           <thead className="bg-slate-100">
             <tr>
               {[
-                "Owner",
+                "Customer Name",
                 "Total Credit",
                 "Total Paid",
                 "Balance",

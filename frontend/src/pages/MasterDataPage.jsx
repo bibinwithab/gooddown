@@ -339,7 +339,7 @@ function MasterDataPage() {
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
             }}
           >
-            <h2 style={{ marginBottom: "0.5rem" }}>Vehicle Owners</h2>
+            <h2 style={{ marginBottom: "0.5rem" }}>Customers</h2>
             <table
               style={{
                 width: "100%",

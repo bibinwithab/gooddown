@@ -55,7 +55,7 @@ function BillTemplate({ data }) {
         {/* Party / vehicle */}
         <div className="slip-party">
           <div>
-            <span className="label">Owner:</span>
+            <span className="label">Customer:</span>
             <span>{owner_name}</span>
           </div>
           <div>

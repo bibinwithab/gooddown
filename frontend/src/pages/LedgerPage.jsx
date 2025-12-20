@@ -79,7 +79,7 @@ function LedgerPage() {
     const owner = owners.find(
       (o) => String(o.owner_id) === String(selectedOwnerId)
     );
-    const ownerName = owner ? owner.name : "Owner";
+    const ownerName = owner ? owner.name : "Customer";
 
     exportToCsv(
       `Ledger_${ownerName.replace(/\s+/g, "_")}`,
@@ -114,13 +114,13 @@ function LedgerPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-xl font-semibold mb-4">Vehicle Owner Ledger</h1>
+      <h1 className="text-xl font-semibold mb-4">Customer Ledger</h1>
 
       {/* TOP CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* OWNER SELECT */}
         <div className="bg-white rounded shadow p-4">
-          <label className="block font-medium mb-1">Select Owner</label>
+          <label className="block font-medium mb-1">Select Customer</label>
           <select
             value={selectedOwnerId}
             onChange={(e) => {
