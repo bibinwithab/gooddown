@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:4000/api"; // adjust if needed
+import { fetchWeeklyReports } from "../api";
 
 function WeeklyReportPage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -16,9 +14,7 @@ function WeeklyReportPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(`${API}/weekly-reports`, {
-        params: { from: fromDate, to: toDate },
-      });
+      const res = await fetchWeeklyReports(fromDate, toDate);
       setReport(res.data);
     } catch (err) {
       console.error(err);

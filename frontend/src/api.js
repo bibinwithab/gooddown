@@ -45,4 +45,10 @@ export const fetchVehiclesByOwner = (ownerId, query = "") =>
     params: { owner_id: ownerId, q: query },
   });
 
+// Weekly Reports
+export const fetchWeeklyReports = (from, to) =>
+  api.get("/weekly-reports", {
+    params: { from, to },
+  });
+  
 export default api;
