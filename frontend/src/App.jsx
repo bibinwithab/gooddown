@@ -52,7 +52,7 @@ function App() {
               className={linkClass}
               onClick={() => setSidebarOpen(false)}
             >
-              Owner Ledger
+              Customer Ledger
             </NavLink>
             <NavLink
               to="/reports"
