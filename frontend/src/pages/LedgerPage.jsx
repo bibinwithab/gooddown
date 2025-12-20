@@ -46,15 +46,9 @@ function LedgerPage() {
 
   const latestBalance = () => {
     if (ledger.length === 0) return 0;
-    // Get the most recent timestamp
-    const mostRecentDate = ledger[0].entry_date;
-    // Filter entries with the most recent date and get the max balance
-    const recentEntries = ledger.filter(
-      (row) => row.entry_date === mostRecentDate
-    );
-    return Number(
-      Math.max(...recentEntries.map((row) => Number(row.balance || 0)))
-    );
+    // Get the last entry (most recent in ascending order)
+    const lastEntry = ledger[ledger.length - 1];
+    return Number(lastEntry.balance || 0);
   };
 
   const displayBalance = latestBalance();

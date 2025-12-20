@@ -41,12 +41,12 @@ export function exportToCsv(filename, rows, columns, options = {}) {
 
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-    // 🔹 HIGHLIGHT FINAL PAYABLE (LATEST TRANSACTION)
-  const firstDataRowIndex = title ? 3 : 1;
+  // 🔹 HIGHLIGHT FINAL PAYABLE (LATEST TRANSACTION - LAST ROW)
+  const lastDataRowIndex = wsData.length - 1;
   const balanceColIndex = columns.length - 1;
 
   const balanceCellRef = XLSX.utils.encode_cell({
-    r: firstDataRowIndex,
+    r: lastDataRowIndex,
     c: balanceColIndex,
   });
 
@@ -54,7 +54,7 @@ export function exportToCsv(filename, rows, columns, options = {}) {
     worksheet[balanceCellRef].s = {
       font: {
         bold: true,
-        sz:16,
+        sz: 16,
         color: { rgb: "7C2D12" }, // dark brown/red
       },
       fill: {
@@ -71,7 +71,6 @@ export function exportToCsv(filename, rows, columns, options = {}) {
       },
     };
   }
-
 
   const totalCols = columns.length - 1;
 
