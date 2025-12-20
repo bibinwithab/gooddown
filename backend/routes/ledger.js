@@ -75,7 +75,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
       -- ✅ FINAL OUTPUT: OLD → NEW (oldest first, latest last)
       SELECT *
       FROM ledger_with_balance
-      ORDER BY entry_date ASC, entry_type ASC, material_name;
+      ORDER BY entry_date ASC, entry_type ASC;
       `,
       [ownerId]
     );
