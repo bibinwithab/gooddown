@@ -6,6 +6,7 @@ import {
   createOwner,
   fetchVehiclesByOwner,
 } from "../api";
+import { createPayment } from "../api";
 import BillTemplate from "../components/BillTemplate";
 import "../components/BillTemplate.css";
 
@@ -23,6 +24,11 @@ function TransactionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [bill, setBill] = useState(null);
   const [error, setError] = useState("");
+  const [recordPayment, setRecordPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [savingPayment, setSavingPayment] = useState(false);
   const [showNewOwner, setShowNewOwner] = useState(false);
   const [newOwnerName, setNewOwnerName] = useState("");
   const [newOwnerContact, setNewOwnerContact] = useState("");
@@ -114,11 +120,33 @@ function TransactionPage() {
         })),
       });
 
+      // If user opted to record payment immediately, call createPayment
+      if (recordPayment && Number(paymentAmount) > 0) {
+        try {
+          setSavingPayment(true);
+          await createPayment(selectedOwner.owner_id, {
+            amount: Number(paymentAmount),
+            mode: paymentMode,
+            notes: paymentNote,
+          });
+        } catch (err) {
+          console.error(err);
+          setError("Bill created but failed to record payment");
+        } finally {
+          setSavingPayment(false);
+        }
+      }
+
       // Clear the form fields after successful bill generation
       setItems([{ materialId: "", quantity: "", mattam: "" }]);
       setSelectedOwner(null);
       setOwnerSearch("");
       setVehicleNumber("");
+      // clear payment inputs
+      setRecordPayment(false);
+      setPaymentAmount("");
+      setPaymentMode("CASH");
+      setPaymentNote("");
       setError("");
     } catch {
       setError("Failed to create bill");
@@ -416,12 +444,55 @@ function TransactionPage() {
             </div>
           </div>
 
+          {/* RECORD PAYMENT */}
+          <div className="mt-4 bg-slate-50 p-3 rounded">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={recordPayment}
+                onChange={(e) => setRecordPayment(e.target.checked)}
+              />
+              <span className="font-medium">Record payment now</span>
+            </label>
+
+            {recordPayment && (
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  placeholder="Amount"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+
+                <select
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value)}
+                  className="border rounded px-2 py-1"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="BANK">Bank</option>
+                  <option value="OTHER">Other</option>
+                </select>
+
+                <input
+                  type="text"
+                  placeholder="Note (optional)"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+              </div>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || savingPayment}
             className="bg-indigo-600 text-white px-6 py-2 rounded font-semibold"
           >
-            {submitting ? "Saving..." : "Save & Generate Bill"}
+            {submitting || savingPayment ? "Saving..." : "Save & Generate Bill"}
           </button>
         </form>
       </div>
