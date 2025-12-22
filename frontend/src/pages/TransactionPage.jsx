@@ -84,6 +84,7 @@ function TransactionPage() {
     // Check if it's a countable item (unit is NO or name contains BRICKS, STONE, CEMENT)
     const isCountable =
       materialUnit === "NO" ||
+      materialUnit === "BAG" ||
       materialName.includes("BRICKS") ||
       materialName.includes("STONE") ||
       materialName.includes("CEMENT");
@@ -93,10 +94,13 @@ function TransactionPage() {
       mattamDisplay = String(Math.round(qty));
     } else if (it.grillMattam) {
       mattamDisplay = "கிரில் மட்டம்";
-    } else if (it.mattamChecked || !it.mattam) {
+    } else if (it.mattamChecked) {
       mattamDisplay = "மட்டம்";
-    } else {
+    } else if (it.mattam) {
       mattamDisplay = `மட்டம் + ${it.mattam}`;
+    } else {
+      // If mattam checkbox not checked and no mattam value entered, show quantity
+      mattamDisplay = String(Math.round(qty));
     }
 
     return { ...it, rate, lineTotal: qty * rate, mattamDisplay };
