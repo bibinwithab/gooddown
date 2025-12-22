@@ -6,7 +6,7 @@
 
 | Table | Purpose |
 |------|--------|
-| owners | Vehicle owner master |
+| vehicle_owners | Vehicle owner master |
 | materials | Material master |
 | transactions | Credit entries |
 | owner_payments | Debit entries |
@@ -16,7 +16,7 @@
 
 ## owners
 ```sql
-CREATE TABLE owners (
+CREATE TABLE vehicle_owners (
   owner_id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   contact_info TEXT,
