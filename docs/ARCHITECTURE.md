@@ -3,13 +3,13 @@
 ## High-Level Architecture
 
 [ Client (Browser / Mobile) ]
-          ↓
+          ->
 [ React + Vite Frontend ]
-          ↓ REST API
+          -> REST API
 [ Express Backend ]
-          ↓
+          ->
 [ PostgreSQL Database ]
-          ↓
+          ->
 [ Thermal Printer / Excel Export ]
 
 ## Design Principles
