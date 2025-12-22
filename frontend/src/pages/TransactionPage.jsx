@@ -73,7 +73,25 @@ function TransactionPage() {
 
     // Determine mattam display text based on checkboxes and input
     let mattamDisplay = "";
-    if (it.grillMattam) {
+
+    // Find the material to check its unit and name
+    const material = materials.find(
+      (m) => String(m.material_id) === String(it.materialId)
+    );
+    const materialName = material ? material.name.toUpperCase() : "";
+    const materialUnit = material ? (material.unit || "").toUpperCase() : "";
+
+    // Check if it's a countable item (unit is NO or name contains BRICKS, STONE, CEMENT)
+    const isCountable =
+      materialUnit === "NO" ||
+      materialName.includes("BRICKS") ||
+      materialName.includes("STONE") ||
+      materialName.includes("CEMENT");
+
+    if (isCountable) {
+      // For countable items, display quantity as whole number
+      mattamDisplay = String(Math.round(qty));
+    } else if (it.grillMattam) {
       mattamDisplay = "கிரில் மட்டம்";
     } else if (it.mattamChecked || !it.mattam) {
       mattamDisplay = "மட்டம்";
