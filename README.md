@@ -8,7 +8,6 @@
 
 ### 👔 For Executives & Managers
 
-- **[EXECUTIVE_SUMMARY.md](docs/EXECUTIVE_SUMMARY.md)** - Business case, ROI, strategy (15 min read)
 - **[README_ENTERPRISE.md](README_ENTERPRISE.md)** - Complete project overview (20 min read)
 
 ### 💻 For Developers
