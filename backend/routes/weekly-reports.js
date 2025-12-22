@@ -38,6 +38,22 @@ router.get("/weekly-reports", async (req, res) => {
 
         UNION ALL
 
+        -- CREDITS (passes)
+        SELECT
+          p.owner_id,
+          o.name AS owner_name,
+          p.pass_date::date AS entry_date,
+          'CREDIT' AS entry_type,
+          'PASS' AS item_name,
+          NULL::numeric AS quantity,
+          NULL::numeric AS rate_at_sale,
+          p.pass_amount AS amount
+        FROM owner_passes p
+        JOIN vehicle_owners o ON o.owner_id = p.owner_id
+        WHERE p.pass_date::date BETWEEN $1 AND $2
+
+        UNION ALL
+
         -- DEBITS (payments)
         SELECT
           p.owner_id,

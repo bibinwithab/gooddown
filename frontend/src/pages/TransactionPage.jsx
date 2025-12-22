@@ -43,6 +43,7 @@ function TransactionPage() {
   const [creatingOwner, setCreatingOwner] = useState(false);
   const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+  const [includePass, setIncludePass] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchMaterials(), fetchOwners()])
@@ -111,7 +112,9 @@ function TransactionPage() {
     return { ...it, rate, lineTotal: qty * rate, mattamDisplay };
   });
 
-  const billTotal = computedItems.reduce((s, i) => s + i.lineTotal, 0);
+  const materialTotal = computedItems.reduce((s, i) => s + i.lineTotal, 0);
+  const passCharge = includePass ? 200 : 0;
+  const billTotal = materialTotal + passCharge;
 
   const loadVehicleSuggestions = async (value) => {
     if (!selectedOwner || !value) {
@@ -165,7 +168,8 @@ function TransactionPage() {
           grillMattam: i.grillMattam,
           mattamChecked: i.mattamChecked,
         })),
-        total: validItems.reduce((s, i) => s + i.lineTotal, 0),
+        total: validItems.reduce((s, i) => s + i.lineTotal, 0) + passCharge,
+        include_pass: includePass,
       };
 
       setBillPreview({
@@ -174,6 +178,7 @@ function TransactionPage() {
         total: previewData.total,
         vehicle_number: vehicleNumber,
         owner_id: selectedOwner.owner_id,
+        include_pass: includePass,
       });
     } catch (err) {
       console.error(err);
@@ -195,11 +200,13 @@ function TransactionPage() {
           material_id: Number(i.material_id),
           quantity: Number(i.quantity),
         })),
+        include_pass: billPreview.include_pass,
       });
 
       setBill({
         bill: res.data.bill,
         owner_name: billPreview.owner_name,
+        include_pass: billPreview.include_pass,
         items: billPreview.items.map((previewItem) => {
           const responseItem = res.data.items.find(
             (ri) => Number(ri.material_id) === Number(previewItem.material_id)
@@ -250,6 +257,7 @@ function TransactionPage() {
       setSelectedOwner(null);
       setOwnerSearch("");
       setVehicleNumber("");
+      setIncludePass(false);
       // clear payment inputs
       setRecordPayment(false);
       setPaymentAmount("");
@@ -603,6 +611,23 @@ function TransactionPage() {
             </div>
           </div>
 
+          {/* PASS CHARGE */}
+          <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={includePass}
+                onChange={(e) => setIncludePass(e.target.checked)}
+              />
+              <span className="font-medium">Include Pass (₹200)</span>
+            </label>
+            {includePass && (
+              <p className="text-sm text-blue-600 mt-2">
+                Pass charge of ₹200 will be added to this bill.
+              </p>
+            )}
+          </div>
+
           {/* RECORD PAYMENT */}
           <div className="mt-4 bg-slate-50 p-3 rounded">
             <label className="inline-flex items-center gap-2">
@@ -701,6 +726,7 @@ function TransactionPage() {
                 items: billPreview.items,
                 total: billPreview.total,
                 vehicle_number: billPreview.vehicle_number,
+                include_pass: billPreview.include_pass,
               }}
             />
           </div>

@@ -8,7 +8,7 @@ function formatBillNumber(billId) {
 function BillTemplate({ data }) {
   if (!data) return null;
 
-  const { bill, items, owner_name, total } = data;
+  const { bill, items, owner_name, total, include_pass } = data;
 
   const qtyDisplay = (q) => {
     const n = Number(q);
@@ -129,6 +129,16 @@ function BillTemplate({ data }) {
               </div>
             </div>
           ))}
+
+          {/* Pass charge if included */}
+          {include_pass && (
+            
+              <div className="item-block-right">
+                <div className="small-row">
+                  +Pass: <strong>₹200</strong>
+                </div>
+              </div>
+          )}
         </div>
 
         <div className="slip-separator" />

@@ -28,12 +28,32 @@ router.get("/owners-summary", async (req, res) => {
     const result = await pool.query(
       `
       WITH credit AS (
+        -- Credits from materials
         SELECT
           owner_id,
           COALESCE(SUM(total_cost), 0) AS total_credit,
           MAX(transaction_timestamp)    AS last_tx
         FROM transactions
         WHERE transaction_timestamp::date BETWEEN $1 AND $2
+        GROUP BY owner_id
+
+        UNION ALL
+
+        -- Credits from passes
+        SELECT
+          owner_id,
+          COALESCE(SUM(pass_amount), 0) AS total_credit,
+          MAX(pass_date)    AS last_tx
+        FROM owner_passes
+        WHERE pass_date::date BETWEEN $1 AND $2
+        GROUP BY owner_id
+      ),
+      credit_combined AS (
+        SELECT
+          owner_id,
+          SUM(total_credit) AS total_credit,
+          MAX(last_tx) AS last_tx
+        FROM credit
         GROUP BY owner_id
       ),
       debit AS (
@@ -59,7 +79,7 @@ router.get("/owners-summary", async (req, res) => {
           ELSE GREATEST(c.last_tx, d.last_pay)
         END AS last_activity
       FROM vehicle_owners vo
-      LEFT JOIN credit c ON c.owner_id = vo.owner_id
+      LEFT JOIN credit_combined c ON c.owner_id = vo.owner_id
       LEFT JOIN debit  d ON d.owner_id = vo.owner_id
       ORDER BY vo.name ASC
       `,

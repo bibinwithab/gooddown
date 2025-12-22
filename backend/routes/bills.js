@@ -13,11 +13,12 @@ const router = Router();
  *   items: [
  *     { material_id, quantity },
  *     ...
- *   ]
+ *   ],
+ *   include_pass: boolean (optional, default false)
  * }
  */
 router.post("/", async (req, res) => {
-  const { owner_id, vehicle_number, items } = req.body;
+  const { owner_id, vehicle_number, items, include_pass } = req.body;
 
   if (
     !owner_id ||
@@ -25,17 +26,15 @@ router.post("/", async (req, res) => {
     !Array.isArray(items) ||
     items.length === 0
   ) {
-    return res
-      .status(400)
-      .json({
-        error: "owner_id, vehicle_number and at least one item are required",
-      });
+    return res.status(400).json({
+      error: "owner_id, vehicle_number and at least one item are required",
+    });
   }
 
   const normalizedVehicle = vehicle_number
-  .toUpperCase()
-  .replace(/\s+/g, "")
-  .replace(/--+/g, "-");
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/--+/g, "-");
 
   const client = await pool.connect();
   try {
@@ -79,6 +78,12 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Add pass amount to bill total if include_pass is true
+    const PASS_AMOUNT = 200;
+    if (include_pass) {
+      billTotal += PASS_AMOUNT;
+    }
+
     // 2) Insert bill header
     const billResult = await client.query(
       `INSERT INTO bills (owner_id, vehicle_number, total_amount)
@@ -116,23 +121,37 @@ router.post("/", async (req, res) => {
       insertedItems.push(itemRes.rows[0]);
     }
 
-    await pool.query(
+    // 4) Insert pass charge if include_pass is true
+    let passRecord = null;
+    if (include_pass) {
+      const PASS_AMOUNT = 200;
+      const passRes = await client.query(
+        `INSERT INTO owner_passes (owner_id, vehicle_number, pass_amount, bill_id)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`,
+        [owner_id, normalizedVehicle, PASS_AMOUNT, bill.bill_id]
+      );
+      passRecord = passRes.rows[0];
+    }
+
+    await client.query(
       `
-  INSERT INTO vehicles (owner_id, vehicle_number)
-  VALUES ($1, $2)
-  ON CONFLICT (owner_id, vehicle_number)
-  DO UPDATE SET last_used_at = NOW()
-  `,
+      INSERT INTO vehicles (owner_id, vehicle_number)
+      VALUES ($1, $2)
+      ON CONFLICT (owner_id, vehicle_number)
+      DO UPDATE SET last_used_at = NOW()
+      `,
       [owner_id, normalizedVehicle]
     );
 
     await client.query("COMMIT");
 
-    // 4) Return data for bill print
+    // 5) Return data for bill print
     res.status(201).json({
       message: "Bill created successfully",
       bill,
       items: insertedItems,
+      pass: passRecord,
     });
   } catch (err) {
     await client.query("ROLLBACK");

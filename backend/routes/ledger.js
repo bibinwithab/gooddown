@@ -33,6 +33,21 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
 
         UNION ALL
 
+        -- Credits: pass charges
+        SELECT
+          p.pass_id                    AS id,
+          p.pass_date                  AS entry_date,
+          'CREDIT'                     AS entry_type,
+          'PASS'                       AS material_name,
+          p.vehicle_number,
+          NULL::numeric                AS quantity,
+          NULL::numeric                AS rate_at_sale,
+          p.pass_amount                AS amount
+        FROM owner_passes p
+        WHERE p.owner_id = $1
+
+        UNION ALL
+
         -- Debits: payments
         SELECT
           p.payment_id                 AS id,
