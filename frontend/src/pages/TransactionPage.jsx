@@ -93,7 +93,12 @@ function TransactionPage() {
       // For countable items, display quantity as whole number
       mattamDisplay = String(Math.round(qty));
     } else if (it.grillMattam) {
-      mattamDisplay = "கிரில் மட்டம்";
+      // If grill mattam is checked and mattam value is entered, combine them
+      if (it.mattam) {
+        mattamDisplay = `கிரில் மட்டம் + ${it.mattam}`;
+      } else {
+        mattamDisplay = "கிரில் மட்டம்";
+      }
     } else if (it.mattamChecked) {
       mattamDisplay = "மட்டம்";
     } else if (it.mattam) {
