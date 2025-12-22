@@ -24,11 +24,11 @@
 ### 🔧 For DevOps & System Admins
 
 - **[DEPLOYMENT_COMPREHENSIVE.md](docs/DEPLOYMENT_COMPREHENSIVE.md)** - Complete deployment guide
-- **[SECURITY_AND_FEATURES.md](docs/SECURITY_AND_FEATURES.md)** - Security framework & monitoring
+- **[SECURITY.md](docs/SECURITY.md)** - Security framework & monitoring
 
 ### 🔐 For Security Teams
 
-- **[SECURITY_AND_FEATURES.md](docs/SECURITY_AND_FEATURES.md)** - Security measures & enhancements
+- **[SECURITY.md](docs/SECURITY.md)** - Security measures & enhancements
 
 ---
 
