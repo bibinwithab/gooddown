@@ -84,12 +84,26 @@ router.post("/", async (req, res) => {
       billTotal += PASS_AMOUNT;
     }
 
-    // 2) Insert bill header
+    // 2) Get daily bill number - count bills created today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const dailyCountRes = await client.query(
+      `SELECT COUNT(*) as count FROM bills 
+       WHERE bill_timestamp >= $1 AND bill_timestamp < $2`,
+      [todayStart.toISOString(), todayEnd.toISOString()]
+    );
+
+    const dailyBillNumber = parseInt(dailyCountRes.rows[0].count) + 1;
+
+    // Insert bill header
     const billResult = await client.query(
-      `INSERT INTO bills (owner_id, vehicle_number, total_amount)
-       VALUES ($1, $2, $3)
+      `INSERT INTO bills (owner_id, vehicle_number, total_amount, daily_bill_no)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [owner_id, normalizedVehicle, billTotal]
+      [owner_id, normalizedVehicle, billTotal, dailyBillNumber]
     );
 
     const bill = billResult.rows[0];

@@ -42,7 +42,9 @@ function BillTemplate({ data }) {
         <div className="slip-meta">
           <div>
             <span className="label">No:</span>
-            <span>{bill ? formatBillNumber(bill.bill_id) : "PREVIEW"}</span>
+            <span>
+              {bill ? formatBillNumber(bill.daily_bill_no) : "PREVIEW"}
+            </span>
           </div>
           <div className="slip-datetime">
             <span>{formattedDate}</span>
@@ -132,12 +134,11 @@ function BillTemplate({ data }) {
 
           {/* Pass charge if included */}
           {include_pass && (
-            
-              <div className="item-block-right">
-                <div className="small-row">
-                  +Pass: <strong>₹200</strong>
-                </div>
+            <div className="item-block-right">
+              <div className="small-row">
+                +Pass: <strong>₹200</strong>
               </div>
+            </div>
           )}
         </div>
 
