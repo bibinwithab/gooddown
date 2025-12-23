@@ -64,6 +64,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
 
       ledger_with_balance AS (
         SELECT
+          id,
           entry_date,
           entry_type,
           material_name,

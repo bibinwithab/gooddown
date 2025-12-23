@@ -93,4 +93,63 @@ router.get("/ledger/:ownerId", async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/transactions/:transactionId
+ * Body: { vehicle_number, quantity, rate_at_sale }
+ */
+router.put("/:transactionId", async (req, res) => {
+  const { transactionId } = req.params;
+  const { vehicle_number, quantity, rate_at_sale } = req.body;
+
+  try {
+    const totalCost = Number(rate_at_sale) * Number(quantity);
+
+    const result = await pool.query(
+      `UPDATE transactions 
+       SET vehicle_number = $1, quantity = $2, rate_at_sale = $3, total_cost = $4
+       WHERE transaction_id = $5 
+       RETURNING *`,
+      [vehicle_number, quantity, rate_at_sale, totalCost, transactionId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    res.json({
+      message: "Transaction updated successfully",
+      transaction: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update transaction" });
+  }
+});
+
+/**
+ * DELETE /api/transactions/:transactionId
+ */
+router.delete("/:transactionId", async (req, res) => {
+  const { transactionId } = req.params;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM transactions WHERE transaction_id = $1 RETURNING *",
+      [transactionId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    res.json({
+      message: "Transaction deleted successfully",
+      transaction: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete transaction" });
+  }
+});
+
 export default router;

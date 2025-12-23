@@ -22,6 +22,10 @@ export const createOwner = (data) => api.post("/owners", data);
 export const createTransaction = (data) => api.post("/transactions", data);
 export const fetchLedger = (ownerId) =>
   api.get(`/transactions/ledger/${ownerId}`);
+export const deleteTransaction = (transactionId) =>
+  api.delete(`/transactions/${transactionId}`);
+export const updateTransaction = (transactionId, payload) =>
+  api.put(`/transactions/${transactionId}`, payload);
 
 // Reports
 export const fetchOwnerAccountsSummary = (from, to) =>
@@ -50,5 +54,5 @@ export const fetchWeeklyReports = (from, to) =>
   api.get("/weekly-reports", {
     params: { from, to },
   });
-  
+
 export default api;
