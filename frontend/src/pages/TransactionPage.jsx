@@ -629,7 +629,7 @@ function TransactionPage() {
           </div>
 
           {/* RECORD PAYMENT */}
-          <div className="mt-4 bg-slate-50 p-3 rounded">
+          <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
             <label className="inline-flex items-center gap-2">
               <input
                 type="checkbox"
