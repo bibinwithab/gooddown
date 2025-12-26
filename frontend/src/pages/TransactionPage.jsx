@@ -611,7 +611,22 @@ function TransactionPage() {
             </div>
           </div>
 
-          
+          {/* PASS CHARGE */}
+          <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={includePass}
+                onChange={(e) => setIncludePass(e.target.checked)}
+              />
+              <span className="font-medium">Include Pass (₹200)</span>
+            </label>
+            {includePass && (
+              <p className="text-sm text-blue-600 mt-2">
+                Pass charge of ₹200 will be added to this bill.
+              </p>
+            )}
+          </div>
 
           {/* RECORD PAYMENT */}
           <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
