@@ -85,15 +85,10 @@ router.post("/", async (req, res) => {
     }
 
     // 2) Get daily bill number - count bills created today
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
+    // Use PostgreSQL's timezone-aware date calculation
     const dailyCountRes = await client.query(
       `SELECT COUNT(*) as count FROM bills 
-       WHERE bill_timestamp >= $1 AND bill_timestamp < $2`,
-      [todayStart.toISOString(), todayEnd.toISOString()]
+       WHERE DATE(bill_timestamp AT TIME ZONE 'Asia/Kolkata') = CURRENT_DATE AT TIME ZONE 'Asia/Kolkata'`
     );
 
     const dailyBillNumber = parseInt(dailyCountRes.rows[0].count) + 1;
@@ -169,8 +164,17 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(err);
-    res.status(500).json({ error: "Failed to create bill" });
+    console.error("[BILLS] Error creating bill:", err.message, err.stack);
+    console.error("[BILLS] Request body:", {
+      owner_id,
+      vehicle_number,
+      items_count: items.length,
+      include_pass,
+    });
+    res.status(500).json({
+      error: "Failed to create bill",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
   } finally {
     client.release();
   }
