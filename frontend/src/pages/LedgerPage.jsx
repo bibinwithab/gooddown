@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { fetchOwners, fetchPaymentLedger, createPayment } from "../api";
+import {
+  fetchOwners,
+  fetchPaymentLedger,
+  createPayment,
+  deleteTransaction,
+  updateTransaction,
+} from "../api";
 import { exportToCsv } from "../utils/exportToCSV";
 
 function LedgerPage() {
@@ -12,6 +18,12 @@ function LedgerPage() {
   const [paymentNote, setPaymentNote] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [savingPayment, setSavingPayment] = useState(false);
+
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editVehicle, setEditVehicle] = useState("");
+  const [editQuantity, setEditQuantity] = useState("");
+  const [editRate, setEditRate] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchOwners()
@@ -71,6 +83,61 @@ function LedgerPage() {
     } finally {
       setSavingPayment(false);
     }
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this transaction? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteTransaction(transactionId);
+      await loadLedger(selectedOwnerId);
+    } catch (err) {
+      console.error("Failed to delete transaction", err);
+      alert("Failed to delete transaction");
+    }
+  };
+
+  const handleEditTransaction = (row) => {
+    setEditingTransaction(row);
+    setEditVehicle(row.vehicle_number || "");
+    setEditQuantity(row.quantity || "");
+    setEditRate(row.rate_at_sale || "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTransaction || !editQuantity || !editRate) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      await updateTransaction(editingTransaction.id, {
+        vehicle_number: editVehicle,
+        quantity: Number(editQuantity),
+        rate_at_sale: Number(editRate),
+      });
+      setEditingTransaction(null);
+      await loadLedger(selectedOwnerId);
+    } catch (err) {
+      console.error("Failed to update transaction", err);
+      alert("Failed to update transaction");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTransaction(null);
+    setEditVehicle("");
+    setEditQuantity("");
+    setEditRate("");
   };
 
   const handleExportLedger = () => {
@@ -202,7 +269,30 @@ function LedgerPage() {
       <div className="space-y-3 md:hidden">
         {ledger.map((row, i) => (
           <div key={i} className="bg-white rounded shadow p-3 text-sm">
-            <div className="font-semibold">{formatDateDMY(row.entry_date)}</div>
+            <div className="flex justify-between items-start mb-2">
+              <div className="font-semibold">
+                {formatDateDMY(row.entry_date)}
+              </div>
+              {row.quantity !== null &&
+                row.quantity !== undefined &&
+                row.rate_at_sale !== null &&
+                row.rate_at_sale !== undefined && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditTransaction(row)}
+                      className="text-blue-600 hover:text-blue-800 font-semibold text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTransaction(row.id)}
+                      className="text-red-600 hover:text-red-800 font-semibold text-xs"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+            </div>
             <div>Vehicle: {row.vehicle_number || "-"}</div>
             <div>Material: {row.material_name}</div>
             <div>Qty: {row.quantity ?? "-"}</div>
@@ -232,6 +322,7 @@ function LedgerPage() {
                 "Credit",
                 "Debit",
                 "Balance",
+                "Action",
               ].map((h) => (
                 <th key={h} className="p-2 text-left">
                   {h}
@@ -241,7 +332,7 @@ function LedgerPage() {
           </thead>
           <tbody>
             {ledger.map((row, i) => (
-              <tr key={i} className="border-b">
+              <tr key={i} className="border-b hover:bg-gray-50">
                 <td className="p-2">{formatDateDMY(row.entry_date)}</td>
                 <td className="p-2">{row.vehicle_number || "-"}</td>
                 <td className="p-2">{row.material_name}</td>
@@ -257,6 +348,27 @@ function LedgerPage() {
                 <td className="p-2 font-semibold">
                   ₹{Number(row.balance || 0).toFixed(2)}
                 </td>
+                <td className="p-2">
+                  {row.quantity !== null &&
+                    row.quantity !== undefined &&
+                    row.rate_at_sale !== null &&
+                    row.rate_at_sale !== undefined && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditTransaction(row)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(row.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -264,6 +376,81 @@ function LedgerPage() {
       </div>
 
       {loading && <p className="mt-2">Loading ledger…</p>}
+
+      {/* EDIT MODAL */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded shadow-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-lg font-semibold mb-4">Edit Transaction</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Vehicle Number
+                </label>
+                <input
+                  type="text"
+                  value={editVehicle}
+                  onChange={(e) => setEditVehicle(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Quantity *
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Rate per Unit (₹) *
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={editRate}
+                  onChange={(e) => setEditRate(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              {editQuantity && editRate && (
+                <div className="bg-blue-50 p-3 rounded">
+                  <p className="text-sm">
+                    Total Amount: ₹
+                    {(Number(editQuantity) * Number(editRate)).toFixed(2)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {savingEdit ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                disabled={savingEdit}
+                className="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold hover:bg-gray-400 disabled:bg-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

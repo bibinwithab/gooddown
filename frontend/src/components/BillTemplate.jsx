@@ -8,7 +8,7 @@ function formatBillNumber(billId) {
 function BillTemplate({ data }) {
   if (!data) return null;
 
-  const { bill, items, owner_name, total } = data;
+  const { bill, items, owner_name, total, include_pass } = data;
 
   const qtyDisplay = (q) => {
     const n = Number(q);
@@ -42,7 +42,9 @@ function BillTemplate({ data }) {
         <div className="slip-meta">
           <div>
             <span className="label">No:</span>
-            <span>{bill ? formatBillNumber(bill.bill_id) : "PREVIEW"}</span>
+            <span>
+              {bill ? formatBillNumber(bill.daily_bill_no) : "PREVIEW"}
+            </span>
           </div>
           <div className="slip-datetime">
             <span>{formattedDate}</span>
@@ -129,6 +131,15 @@ function BillTemplate({ data }) {
               </div>
             </div>
           ))}
+
+          {/* Pass charge if included */}
+          {include_pass && (
+            <div className="item-block-right">
+              <div className="small-row">
+                +Pass: <strong>₹200</strong>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="slip-separator" />
