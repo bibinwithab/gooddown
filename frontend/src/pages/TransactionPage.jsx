@@ -200,6 +200,9 @@ function TransactionPage() {
         items: billPreview.items.map((i) => ({
           material_id: Number(i.material_id),
           quantity: Number(i.quantity),
+          mattam: i.mattam || "",
+          grillMattam: i.grillMattam || false,
+          mattamChecked: i.mattamChecked || false,
         })),
         include_pass: billPreview.include_pass,
       });

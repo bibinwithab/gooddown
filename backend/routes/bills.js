@@ -1,6 +1,9 @@
 // routes/bills.js
 import { Router } from "express";
 import pool from "../db.js";
+import { generateBillPDF, getPDFPath } from "../utils/generateBillPDF.js";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
 
@@ -75,6 +78,9 @@ router.post("/", async (req, res) => {
         quantity: qty,
         rate_at_sale: rate,
         total_cost: lineTotal,
+        mattam: item.mattam || "",
+        grillMattam: item.grillMattam || false,
+        mattamChecked: item.mattamChecked || false,
       });
     }
 
@@ -114,8 +120,11 @@ router.post("/", async (req, res) => {
             quantity,
             rate_at_sale,
             total_cost,
-            bill_id
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            bill_id,
+            mattam,
+            grill_mattam,
+            mattam_checked
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
         [
           li.owner_id,
@@ -125,6 +134,9 @@ router.post("/", async (req, res) => {
           li.rate_at_sale,
           li.total_cost,
           bill.bill_id,
+          li.mattam,
+          li.grillMattam,
+          li.mattamChecked,
         ]
       );
       insertedItems.push(itemRes.rows[0]);
@@ -155,6 +167,31 @@ router.post("/", async (req, res) => {
 
     await client.query("COMMIT");
 
+    // 6) Generate PDF
+    try {
+      const ownerRes = await pool.query(
+        "SELECT name FROM vehicle_owners WHERE owner_id = $1",
+        [owner_id]
+      );
+      const ownerName = ownerRes.rows[0]?.name || "Customer";
+
+      const pdfData = {
+        bill_id: bill.bill_id,
+        daily_bill_no: bill.daily_bill_no,
+        bill_timestamp: bill.bill_timestamp,
+        owner_name: ownerName,
+        vehicle_number: normalizedVehicle,
+        items: insertedItems,
+        total_amount: bill.total_amount,
+        include_pass: include_pass || false,
+      };
+
+      const pdfResult = await generateBillPDF(pdfData);
+    } catch (pdfErr) {
+      console.error("PDF generation warning:", pdfErr.message);
+      // Don't fail the entire request if PDF generation fails
+    }
+
     // 5) Return data for bill print
     res.status(201).json({
       message: "Bill created successfully",
@@ -177,6 +214,111 @@ router.post("/", async (req, res) => {
     });
   } finally {
     client.release();
+  }
+});
+
+/**
+ * GET /api/bills
+ * Get all bills with optional filters
+ */
+router.get("/", async (req, res) => {
+  const { owner_id, limit = 50, offset = 0 } = req.query;
+
+  try {
+    let query = `
+      SELECT b.*, o.name as owner_name
+      FROM bills b
+      JOIN vehicle_owners o ON b.owner_id = o.owner_id
+    `;
+    const params = [];
+
+    if (owner_id) {
+      query += ` WHERE b.owner_id = $1`;
+      params.push(owner_id);
+    }
+
+    query += ` ORDER BY b.bill_timestamp DESC LIMIT $${
+      params.length + 1
+    } OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching bills:", err);
+    res.status(500).json({ error: "Failed to fetch bills" });
+  }
+});
+
+/**
+ * GET /api/bills/:billId
+ * Get a specific bill with its items
+ */
+router.get("/:billId", async (req, res) => {
+  const { billId } = req.params;
+
+  try {
+    const billRes = await pool.query(
+      `SELECT b.*, o.name as owner_name
+       FROM bills b
+       JOIN vehicle_owners o ON b.owner_id = o.owner_id
+       WHERE b.bill_id = $1`,
+      [billId]
+    );
+
+    if (billRes.rows.length === 0) {
+      return res.status(404).json({ error: "Bill not found" });
+    }
+
+    const bill = billRes.rows[0];
+
+    const itemsRes = await pool.query(
+      `SELECT t.*, m.name as material_name, m.unit
+       FROM transactions t
+       LEFT JOIN materials m ON t.material_id = m.material_id
+       WHERE t.bill_id = $1`,
+      [billId]
+    );
+
+    res.json({
+      bill,
+      items: itemsRes.rows,
+    });
+  } catch (err) {
+    console.error("Error fetching bill:", err);
+    res.status(500).json({ error: "Failed to fetch bill" });
+  }
+});
+
+/**
+ * GET /api/bills/:billId/download
+ * Download bill PDF
+ */
+router.get("/:billId/download", async (req, res) => {
+  const { billId } = req.params;
+
+  try {
+    const billRes = await pool.query(
+      "SELECT daily_bill_no FROM bills WHERE bill_id = $1",
+      [billId]
+    );
+
+    if (billRes.rows.length === 0) {
+      return res.status(404).json({ error: "Bill not found" });
+    }
+
+    const daily_bill_no = billRes.rows[0].daily_bill_no;
+    const pdfFilename = `bill_${billId}_${daily_bill_no}.pdf`;
+    const filepath = getPDFPath(pdfFilename);
+
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ error: "PDF file not found" });
+    }
+
+    res.download(filepath, pdfFilename);
+  } catch (err) {
+    console.error("Error downloading bill:", err);
+    res.status(500).json({ error: "Failed to download bill" });
   }
 });
 

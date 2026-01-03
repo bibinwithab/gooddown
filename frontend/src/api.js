@@ -35,6 +35,11 @@ export const fetchOwnerAccountsSummary = (from, to) =>
 
 // Bills
 export const createBill = (data) => api.post("/bills", data);
+export const fetchBills = (ownerId) =>
+  ownerId
+    ? api.get("/bills", { params: { owner_id: ownerId } })
+    : api.get("/bills");
+export const fetchBillDetails = (billId) => api.get(`/bills/${billId}`);
 
 // Payments
 export const fetchPaymentLedger = (ownerId) =>
