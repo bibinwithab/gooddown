@@ -193,7 +193,7 @@ function BillsPage() {
                       const mattamStr =
                         mattamRaw == null ? "" : String(mattamRaw).trim();
 
-                      if (mattamStr === "") return "மட்டம்";
+                      if (mattamStr === "") return qtyDisplay(item.quantity);
 
                       const mattamNum = Number(mattamStr);
                       if (Number.isFinite(mattamNum)) {
