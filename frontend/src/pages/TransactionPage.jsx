@@ -5,6 +5,7 @@ import {
   createBill,
   createOwner,
   fetchVehiclesByOwner,
+  deleteVehicle,
 } from "../api";
 import { createPayment } from "../api";
 import BillTemplate from "../components/BillTemplate";
@@ -429,13 +430,37 @@ function TransactionPage() {
                   {vehicleSuggestions.map((v, idx) => (
                     <div
                       key={idx}
-                      onClick={() => {
-                        setVehicleNumber(v.vehicle_number);
-                        setShowVehicleDropdown(false);
-                      }}
-                      className="px-3 py-2 cursor-pointer hover:bg-slate-100"
+                      className="px-3 py-2 cursor-pointer hover:bg-slate-100 flex justify-between items-center"
                     >
-                      {v.vehicle_number}
+                      <div
+                        onClick={() => {
+                          setVehicleNumber(v.vehicle_number);
+                          setShowVehicleDropdown(false);
+                        }}
+                        className="flex-1"
+                      >
+                        {v.vehicle_number}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await deleteVehicle(v.vehicle_id);
+                            // Remove from suggestions after successful deletion
+                            setVehicleSuggestions(
+                              vehicleSuggestions.filter((_, i) => i !== idx)
+                            );
+                          } catch (err) {
+                            console.error(err);
+                            setError("Failed to delete vehicle");
+                          }
+                        }}
+                        className="text-red-600 font-bold bg-red-100 px-2 rounded border ml-2"
+                        title="Delete vehicle"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>

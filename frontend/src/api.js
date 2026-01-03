@@ -49,6 +49,9 @@ export const fetchVehiclesByOwner = (ownerId, query = "") =>
     params: { owner_id: ownerId, q: query },
   });
 
+export const deleteVehicle = (vehicleId) =>
+  api.delete(`/vehicles/${vehicleId}`);
+
 // Weekly Reports
 export const fetchWeeklyReports = (from, to) =>
   api.get("/weekly-reports", {

@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
   try {
     const result = await pool.query(
       `
-      SELECT vehicle_number
+      SELECT vehicle_id, vehicle_number
       FROM vehicles
       WHERE owner_id = $1
         AND vehicle_number ILIKE $2
@@ -55,6 +55,33 @@ router.post("/", async (req, res) => {
   } catch (err) {
     console.error("Vehicle insert error:", err);
     res.status(500).json({ error: "Failed to add vehicle" });
+  }
+});
+
+/**
+ * DELETE /api/vehicles/:vehicleId
+ * Deletes a vehicle by ID
+ */
+router.delete("/:vehicleId", async (req, res) => {
+  const { vehicleId } = req.params;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM vehicles WHERE vehicle_id = $1 RETURNING vehicle_id",
+      [vehicleId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Vehicle not found" });
+    }
+
+    res.json({
+      message: "Vehicle deleted successfully",
+      vehicle_id: vehicleId,
+    });
+  } catch (err) {
+    console.error("Vehicle delete error:", err);
+    res.status(500).json({ error: "Failed to delete vehicle" });
   }
 });
 
