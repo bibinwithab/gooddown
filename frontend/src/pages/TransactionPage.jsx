@@ -644,7 +644,7 @@ function TransactionPage() {
                 checked={includePass}
                 onChange={(e) => setIncludePass(e.target.checked)}
               />
-              <span className="font-medium">Include Pass (₹200)</span>
+              <span className="font-medium">Add Pass (₹200)</span>
             </label>
             {includePass && (
               <p className="text-sm text-blue-600 mt-2">
