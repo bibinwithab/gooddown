@@ -63,6 +63,7 @@ function BillsPage() {
     try {
       setError("");
       const res = await fetchBillDetails(billId);
+      console.log(`[BillsPage] API items:`, JSON.stringify(res.data.items));
       setSelectedBill(billId);
       setBillDetails(res.data);
     } catch (err) {

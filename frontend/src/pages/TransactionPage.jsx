@@ -66,7 +66,9 @@ function TransactionPage() {
     const m = materials.find(
       (mm) => String(mm.material_id) === String(materialId)
     );
-    return m ? Number(m.rate_per_unit) : 0;
+    const rate = m ? Number(m.rate_per_unit) : 0;
+    console.log(`[resolveRate] materialId=${materialId} rate_per_unit=${m?.rate_per_unit} (raw: ${typeof m?.rate_per_unit}) rate=${rate}`);
+    return rate;
   };
 
   const computedItems = items.map((it) => {
@@ -110,6 +112,7 @@ function TransactionPage() {
       mattamDisplay = String(Math.round(qty));
     }
 
+    console.log(`[computedItems] idx=${items.indexOf(it)} rate=${rate} qty=${qty} lineTotal=${qty * rate}`);
     return { ...it, rate, lineTotal: qty * rate, mattamDisplay };
   });
 
@@ -173,6 +176,7 @@ function TransactionPage() {
         include_pass: includePass,
       };
 
+      console.log(`[setBillPreview] items:`, JSON.stringify(previewData.items));
       setBillPreview({
         owner_name: selectedOwner.name,
         items: previewData.items,
@@ -207,28 +211,33 @@ function TransactionPage() {
         include_pass: billPreview.include_pass,
       });
 
+      const savedItems = billPreview.items.map((previewItem) => {
+        const responseItem = res.data.items.find(
+          (ri) => Number(ri.material_id) === Number(previewItem.material_id)
+        );
+        return {
+          ...previewItem,
+          transaction_id: responseItem?.transaction_id,
+          rate_at_sale: previewItem.rate_at_sale,
+          total_cost: previewItem.total_cost,
+          quantity: previewItem.quantity,
+          material_name: previewItem.material_name,
+          unit: previewItem.unit,
+          mattam: previewItem.mattam,
+          mattamDisplay: previewItem.mattamDisplay,
+          grillMattam: previewItem.grillMattam,
+          mattamChecked: previewItem.mattamChecked,
+        };
+      });
+      console.log(`[handleSaveBill] API response bill.total_amount:`, res.data.bill.total_amount);
+      console.log(`[handleSaveBill] API response items:`, JSON.stringify(res.data.items));
+      console.log(`[handleSaveBill] savedItems (going to BillTemplate):`, JSON.stringify(savedItems));
+
       setBill({
         bill: res.data.bill,
         owner_name: billPreview.owner_name,
         include_pass: billPreview.include_pass,
-        items: billPreview.items.map((previewItem) => {
-          const responseItem = res.data.items.find(
-            (ri) => Number(ri.material_id) === Number(previewItem.material_id)
-          );
-          return {
-            ...previewItem,
-            transaction_id: responseItem?.transaction_id,
-            rate_at_sale: previewItem.rate_at_sale,
-            total_cost: previewItem.total_cost,
-            quantity: previewItem.quantity,
-            material_name: previewItem.material_name,
-            unit: previewItem.unit,
-            mattam: previewItem.mattam,
-            mattamDisplay: previewItem.mattamDisplay,
-            grillMattam: previewItem.grillMattam,
-            mattamChecked: previewItem.mattamChecked,
-          };
-        }),
+        items: savedItems,
       });
 
       // If user opted to record payment immediately, call createPayment

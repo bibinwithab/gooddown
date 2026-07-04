@@ -9,6 +9,13 @@ function BillTemplate({ data }) {
   if (!data) return null;
 
   const { bill, items, owner_name, total, include_pass } = data;
+  console.log(`[BillTemplate] items received:`, JSON.stringify(items));
+  if (items && items.length > 0) {
+    items.forEach((item, i) => {
+      console.log(`[BillTemplate] item[${i}] rate_at_sale=${item.rate_at_sale} (${typeof item.rate_at_sale}) total_cost=${item.total_cost} (${typeof item.total_cost})`);
+      console.log(`[BillTemplate] item[${i}] Number(rate_at_sale)=${Number(item.rate_at_sale)} toFixed(2)=${Number(item.rate_at_sale).toFixed(2)}`);
+    });
+  }
 
   const qtyDisplay = (q) => {
     const n = Number(q);
