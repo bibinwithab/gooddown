@@ -4,7 +4,7 @@ import {
   fetchOwners,
   createBill,
   createOwner,
-  fetchVehiclesByOwner,
+  lookupVehicles,
   deleteVehicle,
 } from "../api";
 import { createPayment } from "../api";
@@ -118,13 +118,13 @@ function TransactionPage() {
   const billTotal = materialTotal + passCharge;
 
   const loadVehicleSuggestions = async (value) => {
-    if (!selectedOwner || !value) {
+    if (!value || value.length < 2) {
       setVehicleSuggestions([]);
       return;
     }
 
     try {
-      const res = await fetchVehiclesByOwner(selectedOwner.owner_id, value);
+      const res = await lookupVehicles(value);
       setVehicleSuggestions(res.data || []);
     } catch (err) {
       console.error(err);
@@ -430,42 +430,64 @@ function TransactionPage() {
               {/* 🔽 Vehicle suggestions */}
               {showVehicleDropdown && vehicleSuggestions.length > 0 && (
                 <div className="absolute z-20 w-full bg-white border rounded shadow mt-1 max-h-48 overflow-y-auto">
-                  {vehicleSuggestions.map((v, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 cursor-pointer hover:bg-slate-100 flex justify-between items-center"
-                    >
+                  {vehicleSuggestions.map((v, idx) => {
+                    const isCurrentOwner =
+                      selectedOwner &&
+                      Number(v.owner_id) === Number(selectedOwner.owner_id);
+                    return (
                       <div
-                        onClick={() => {
-                          setVehicleNumber(v.vehicle_number);
-                          setShowVehicleDropdown(false);
-                        }}
-                        className="flex-1"
+                        key={`${v.vehicle_id}-${idx}`}
+                        className="px-3 py-2 cursor-pointer hover:bg-slate-100 flex justify-between items-center"
                       >
-                        {v.vehicle_number}
+                        <div
+                          onClick={() => {
+                            setVehicleNumber(v.vehicle_number);
+                            // Auto-select the owner if we have the info from lookup
+                            if (!selectedOwner || !isCurrentOwner) {
+                              const owner = owners.find(
+                                (o) =>
+                                  Number(o.owner_id) === Number(v.owner_id)
+                              );
+                              if (owner) {
+                                setSelectedOwner(owner);
+                                setOwnerSearch(owner.name);
+                              }
+                            }
+                            setShowVehicleDropdown(false);
+                          }}
+                          className="flex-1"
+                        >
+                          <span className="font-medium">
+                            {v.vehicle_number}
+                          </span>
+                          <span className="text-xs text-slate-500 ml-2">
+                            — {v.owner_name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await deleteVehicle(v.vehicle_id);
+                              setVehicleSuggestions(
+                                vehicleSuggestions.filter(
+                                  (_, i) => i !== idx
+                                )
+                              );
+                            } catch (err) {
+                              console.error(err);
+                              setError("Failed to delete vehicle");
+                            }
+                          }}
+                          className="text-red-600 font-bold bg-red-100 px-2 rounded border ml-2"
+                          title="Delete vehicle"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            await deleteVehicle(v.vehicle_id);
-                            // Remove from suggestions after successful deletion
-                            setVehicleSuggestions(
-                              vehicleSuggestions.filter((_, i) => i !== idx)
-                            );
-                          } catch (err) {
-                            console.error(err);
-                            setError("Failed to delete vehicle");
-                          }
-                        }}
-                        className="text-red-600 font-bold bg-red-100 px-2 rounded border ml-2"
-                        title="Delete vehicle"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

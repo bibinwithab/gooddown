@@ -35,10 +35,14 @@ export const fetchOwnerAccountsSummary = (from, to) =>
 
 // Bills
 export const createBill = (data) => api.post("/bills", data);
-export const fetchBills = (ownerId) =>
-  ownerId
-    ? api.get("/bills", { params: { owner_id: ownerId } })
-    : api.get("/bills");
+export const fetchBills = ({ ownerId, q, limit, offset } = {}) => {
+  const params = {};
+  if (ownerId) params.owner_id = ownerId;
+  if (q) params.q = q;
+  if (limit) params.limit = limit;
+  if (offset) params.offset = offset;
+  return api.get("/bills", { params });
+};
 export const fetchBillDetails = (billId) => api.get(`/bills/${billId}`);
 
 // Payments
@@ -53,6 +57,9 @@ export const fetchVehiclesByOwner = (ownerId, query = "") =>
   api.get("/vehicles", {
     params: { owner_id: ownerId, q: query },
   });
+
+export const lookupVehicles = (query) =>
+  api.get("/vehicles/lookup", { params: { q: query } });
 
 export const deleteVehicle = (vehicleId) =>
   api.delete(`/vehicles/${vehicleId}`);

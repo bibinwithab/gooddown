@@ -35,6 +35,37 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/vehicles/lookup?q=TN
+ * Lists all vehicle numbers matching query with their owner names
+ * (no owner_id required — searches globally across all owners)
+ */
+router.get("/lookup", async (req, res) => {
+  const { q = "" } = req.query;
+
+  if (!q || q.length < 2) return res.json([]);
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT v.vehicle_id, v.vehicle_number, v.owner_id, o.name AS owner_name
+      FROM vehicles v
+      JOIN vehicle_owners o ON v.owner_id = o.owner_id
+      WHERE v.vehicle_number ILIKE $1
+        AND o.is_active = TRUE
+      ORDER BY v.last_used_at DESC
+      LIMIT 10
+      `,
+      [`%${q}%`]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Vehicle lookup error:", err);
+    res.status(500).json({ error: "Failed to lookup vehicles" });
+  }
+});
+
 router.post("/", async (req, res) => {
   const { owner_id, vehicle_number } = req.body;
   if (!owner_id || !vehicle_number) {

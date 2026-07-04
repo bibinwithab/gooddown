@@ -219,31 +219,51 @@ router.post("/", async (req, res) => {
 
 /**
  * GET /api/bills
- * Get all bills with optional filters
+ * Get all bills with optional filters, search, and pagination
+ * Query params: owner_id, q (search name/vehicle), limit, offset
  */
 router.get("/", async (req, res) => {
-  const { owner_id, limit = 50, offset = 0 } = req.query;
+  const { owner_id, q = "", limit = 50, offset = 0 } = req.query;
 
   try {
-    let query = `
-      SELECT b.*, o.name as owner_name
-      FROM bills b
-      JOIN vehicle_owners o ON b.owner_id = o.owner_id
-    `;
     const params = [];
+    const conditions = [];
 
     if (owner_id) {
-      query += ` WHERE b.owner_id = $1`;
+      conditions.push(`b.owner_id = $${params.length + 1}`);
       params.push(owner_id);
     }
 
-    query += ` ORDER BY b.bill_timestamp DESC LIMIT $${
-      params.length + 1
-    } OFFSET $${params.length + 2}`;
-    params.push(limit, offset);
+    if (q) {
+      conditions.push(
+        `(o.name ILIKE $${params.length + 1} OR b.vehicle_number ILIKE $${params.length + 1})`
+      );
+      params.push(`%${q}%`);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    // Get total count for pagination
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM bills b JOIN vehicle_owners o ON b.owner_id = o.owner_id ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    // Get paginated results
+    const query = `
+      SELECT b.*, o.name as owner_name
+      FROM bills b
+      JOIN vehicle_owners o ON b.owner_id = o.owner_id
+      ${whereClause}
+      ORDER BY b.bill_timestamp DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    params.push(Number(limit), Number(offset));
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    res.json({ bills: result.rows, total });
   } catch (err) {
     console.error("Error fetching bills:", err);
     res.status(500).json({ error: "Failed to fetch bills" });
