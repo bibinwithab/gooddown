@@ -307,10 +307,10 @@ function BillsPage() {
                             Qty: <span className="font-semibold">{qtyDisplay(item.quantity)}</span>
                           </div>
                           <div>
-                            Rate: <span className="font-semibold">₹{Number(item.rate_at_sale).toFixed(0)}</span>
+                            Rate: <span className="font-semibold">₹{Number(item.rate_at_sale).toFixed(2)}</span>
                           </div>
                           <div>
-                            Amt: <span className="font-semibold">₹{Number(item.total_cost).toFixed(0)}</span>
+                            Amt: <span className="font-semibold">₹{Number(item.total_cost).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>

@@ -37,6 +37,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
         -- Credits: pass charges
         SELECT
           p.pass_id                    AS id,
+          NULL::int                    AS material_id,
           p.pass_date                  AS entry_date,
           'CREDIT'                     AS entry_type,
           'PASS'                       AS material_name,
@@ -52,6 +53,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
         -- Debits: payments
         SELECT
           p.payment_id                 AS id,
+          NULL::int                    AS material_id,
           p.payment_date               AS entry_date,
           'DEBIT'                      AS entry_type,
           COALESCE(p.notes, 'Payment') AS material_name,
@@ -66,6 +68,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
       ledger_with_balance AS (
         SELECT
           id,
+          material_id,
           entry_date,
           entry_type,
           material_name,

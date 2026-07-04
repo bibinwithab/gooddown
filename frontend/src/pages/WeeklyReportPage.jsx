@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchWeeklyReports } from "../api";
 
 function WeeklyReportPage() {
@@ -9,6 +9,16 @@ function WeeklyReportPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [searchQ, setSearchQ] = useState("");
+
+  const filteredOwners = useMemo(() => {
+    if (!report?.owners) return [];
+    if (!searchQ) return report.owners;
+    const q = searchQ.toLowerCase();
+    return report.owners.filter((o) =>
+      o.owner_name.toLowerCase().includes(q)
+    );
+  }, [report, searchQ]);
 
   const loadReport = async () => {
     try {
@@ -55,6 +65,16 @@ function WeeklyReportPage() {
           />
         </div>
 
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-sm font-medium">Search Customer</label>
+          <input
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder="Type customer name..."
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+
         <button
           onClick={loadReport}
           className="bg-indigo-600 text-white px-4 py-2 rounded font-semibold"
@@ -90,9 +110,9 @@ function WeeklyReportPage() {
       )}
 
       {/* REPORT PREVIEW */}
-      {report?.owners?.length > 0 && (
+      {filteredOwners.length > 0 && (
         <div className="space-y-6">
-          {report.owners.map((owner, oi) => (
+          {filteredOwners.map((owner, oi) => (
             <div key={oi} className="bg-white rounded shadow p-4">
               <h2 className="text-lg font-semibold mb-3">{owner.owner_name}</h2>
 
@@ -158,6 +178,9 @@ function WeeklyReportPage() {
 
       {!loading && report && report.owners.length === 0 && (
         <p>No data for selected period.</p>
+      )}
+      {!loading && report && report.owners.length > 0 && filteredOwners.length === 0 && (
+        <p>No customers match your search.</p>
       )}
     </div>
   );
