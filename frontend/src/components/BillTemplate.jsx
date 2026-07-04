@@ -123,10 +123,10 @@ function BillTemplate({ data }) {
                   Qty: <strong>{qtyDisplay(item.quantity)}</strong>
                 </div>
                 <div className="small-row">
-                  Rate: <strong>₹{Number(item.rate_at_sale).toFixed(0)}</strong>
+                  Rate: <strong>₹{Number(item.rate_at_sale).toFixed(2)}</strong>
                 </div>
                 <div className="small-row">
-                  Amt: <strong>₹{Number(item.total_cost).toFixed(0)}</strong>
+                  Amt: <strong>₹{Number(item.total_cost).toFixed(2)}</strong>
                 </div>
               </div>
             </div>
