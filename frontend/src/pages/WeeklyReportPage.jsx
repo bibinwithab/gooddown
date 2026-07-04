@@ -103,6 +103,7 @@ function WeeklyReportPage() {
                     <tr>
                       <th className="p-2 text-left">Date</th>
                       <th className="p-2 text-left">Material</th>
+                      <th className="p-2 text-left">Vehicle</th>
                       <th className="p-2">Qty</th>
                       <th className="p-2">Rate</th>
                       <th className="p-2">Amount</th>
@@ -128,7 +129,14 @@ function WeeklyReportPage() {
 
                     {entry.items.map((it, ii) => (
                       <div key={ii} className="flex justify-between">
-                        <span>{it.material}</span>
+                        <span>
+                          {it.material}
+                          {it.vehicle_number && (
+                            <span className="text-xs text-slate-400 ml-1">
+                              ({it.vehicle_number})
+                            </span>
+                          )}
+                        </span>
                         <span>₹{it.total}</span>
                       </div>
                     ))}
@@ -164,6 +172,7 @@ function FragmentRow({ entry }) {
         <tr key={i} className="border-b">
           <td className="p-2">{i === 0 ? formatDate(entry.date) : ""}</td>
           <td className="p-2">{it.material}</td>
+          <td className="p-2 text-xs text-slate-500">{it.vehicle_number || ""}</td>
           <td className="p-2 text-center">{it.qty ?? "-"}</td>
           <td className="p-2 text-center">{it.rate ?? "-"}</td>
           <td className="p-2 text-right">₹{it.total}</td>
@@ -177,6 +186,7 @@ function FragmentRow({ entry }) {
       <tr className="bg-yellow-50 font-semibold">
         <td></td>
         <td className="p-2">TOTAL</td>
+        <td></td>
         <td></td>
         <td></td>
         <td className="p-2 text-right">₹{entry.day_total}</td>

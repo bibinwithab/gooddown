@@ -33,7 +33,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
     wsData.push([owner.owner_name]);
     merges.push({
       s: { r: rowIndex, c: 0 },
-      e: { r: rowIndex, c: 6 },
+      e: { r: rowIndex, c: 7 },
     });
     rowIndex++;
 
@@ -44,6 +44,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
     wsData.push([
       "DATE",
       "MATERIAL",
+      "VEHICLE",
       "QTY",
       "RATE",
       "AMOUNT",
@@ -60,6 +61,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
         wsData.push([
           idx === 0 ? dateStr : "",
           item.material,
+          item.vehicle_number ?? "",
           item.qty ?? "",
           item.rate ?? "",
           item.total ?? "",
@@ -73,6 +75,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
       wsData.push([
         "",
         "TOTAL",
+        "",
         "",
         "",
         entry.day_total,
@@ -93,6 +96,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
   ws["!cols"] = [
     { wch: 14 },
     { wch: 20 },
+    { wch: 16 },
     { wch: 8 },
     { wch: 10 },
     { wch: 14 },
@@ -102,7 +106,7 @@ export function exportWeeklyLedgerToExcel(filename, weeklyData) {
 
   /** STYLES */
   for (let r = 0; r < wsData.length; r++) {
-    for (let c = 0; c < 7; c++) {
+    for (let c = 0; c < 8; c++) {
       const cellRef = XLSX.utils.encode_cell({ r, c });
       if (!ws[cellRef]) continue;
 

@@ -30,7 +30,8 @@ router.get("/weekly-reports", async (req, res) => {
           m.name AS item_name,
           t.quantity,
           t.rate_at_sale,
-          t.total_cost AS amount
+          t.total_cost AS amount,
+          t.vehicle_number
         FROM transactions t
         JOIN materials m ON m.material_id = t.material_id
         JOIN vehicle_owners o ON o.owner_id = t.owner_id
@@ -47,7 +48,8 @@ router.get("/weekly-reports", async (req, res) => {
           'PASS' AS item_name,
           NULL::numeric AS quantity,
           NULL::numeric AS rate_at_sale,
-          p.pass_amount AS amount
+          p.pass_amount AS amount,
+          p.vehicle_number
         FROM owner_passes p
         JOIN vehicle_owners o ON o.owner_id = p.owner_id
         WHERE p.pass_date::date BETWEEN $1 AND $2
@@ -63,7 +65,8 @@ router.get("/weekly-reports", async (req, res) => {
           COALESCE(p.notes, 'PAID') AS item_name,
           NULL::numeric AS quantity,
           NULL::numeric AS rate_at_sale,
-          p.amount AS amount
+          p.amount AS amount,
+          NULL::text AS vehicle_number
         FROM owner_payments p
         JOIN vehicle_owners o ON o.owner_id = p.owner_id
         WHERE p.payment_date::date BETWEEN $1 AND $2
@@ -111,6 +114,7 @@ router.get("/weekly-reports", async (req, res) => {
           qty: Number(r.quantity),
           rate: Number(r.rate_at_sale),
           total: Number(r.amount),
+          vehicle_number: r.vehicle_number || "",
         });
 
         day.day_total += Number(r.amount);
@@ -121,6 +125,7 @@ router.get("/weekly-reports", async (req, res) => {
           qty: "",
           rate: "",
           total: Number(r.amount),
+          vehicle_number: "",
         });
 
         day.paid += Number(r.amount);
