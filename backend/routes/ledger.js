@@ -19,6 +19,7 @@ router.get("/owners/:ownerId/ledger", async (req, res) => {
         -- Credits: material transactions
         SELECT
           t.transaction_id             AS id,
+          t.material_id                AS material_id,
           t.transaction_timestamp      AS entry_date,
           'CREDIT'                     AS entry_type,
           m.name                       AS material_name,

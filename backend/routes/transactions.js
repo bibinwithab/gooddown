@@ -95,21 +95,22 @@ router.get("/ledger/:ownerId", async (req, res) => {
 
 /**
  * PUT /api/transactions/:transactionId
- * Body: { vehicle_number, quantity, rate_at_sale }
+ * Body: { vehicle_number, material_id, quantity, rate_at_sale }
  */
 router.put("/:transactionId", async (req, res) => {
   const { transactionId } = req.params;
-  const { vehicle_number, quantity, rate_at_sale } = req.body;
+  const { vehicle_number, material_id, quantity, rate_at_sale } = req.body;
 
   try {
     const totalCost = Number(rate_at_sale) * Number(quantity);
 
     const result = await pool.query(
       `UPDATE transactions 
-       SET vehicle_number = $1, quantity = $2, rate_at_sale = $3, total_cost = $4
-       WHERE transaction_id = $5 
+       SET vehicle_number = $1, material_id = COALESCE($2, material_id),
+           quantity = $3, rate_at_sale = $4, total_cost = $5
+       WHERE transaction_id = $6 
        RETURNING *`,
-      [vehicle_number, quantity, rate_at_sale, totalCost, transactionId]
+      [vehicle_number, material_id || null, quantity, rate_at_sale, totalCost, transactionId]
     );
 
     if (result.rowCount === 0) {

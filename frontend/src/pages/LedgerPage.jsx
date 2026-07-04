@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   fetchOwners,
+  fetchMaterials,
   fetchPaymentLedger,
   createPayment,
   deleteTransaction,
@@ -10,6 +11,7 @@ import { exportToCsv } from "../utils/exportToCSV";
 
 function LedgerPage() {
   const [owners, setOwners] = useState([]);
+  const [materials, setMaterials] = useState([]);
   const [selectedOwnerId, setSelectedOwnerId] = useState("");
   const [ledger, setLedger] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,6 +23,7 @@ function LedgerPage() {
 
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [editVehicle, setEditVehicle] = useState("");
+  const [editMaterialId, setEditMaterialId] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
   const [editRate, setEditRate] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -28,6 +31,9 @@ function LedgerPage() {
   useEffect(() => {
     fetchOwners()
       .then((res) => setOwners(res.data))
+      .catch(console.error);
+    fetchMaterials()
+      .then((res) => setMaterials(res.data))
       .catch(console.error);
   }, []);
 
@@ -106,6 +112,7 @@ function LedgerPage() {
   const handleEditTransaction = (row) => {
     setEditingTransaction(row);
     setEditVehicle(row.vehicle_number || "");
+    setEditMaterialId(row.material_id || "");
     setEditQuantity(row.quantity || "");
     setEditRate(row.rate_at_sale || "");
   };
@@ -120,6 +127,7 @@ function LedgerPage() {
       setSavingEdit(true);
       await updateTransaction(editingTransaction.id, {
         vehicle_number: editVehicle,
+        material_id: editMaterialId ? Number(editMaterialId) : undefined,
         quantity: Number(editQuantity),
         rate_at_sale: Number(editRate),
       });
@@ -136,6 +144,7 @@ function LedgerPage() {
   const handleCancelEdit = () => {
     setEditingTransaction(null);
     setEditVehicle("");
+    setEditMaterialId("");
     setEditQuantity("");
     setEditRate("");
   };
@@ -394,6 +403,31 @@ function LedgerPage() {
                   onChange={(e) => setEditVehicle(e.target.value)}
                   className="w-full border rounded px-3 py-2"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Material *
+                </label>
+                <select
+                  value={editMaterialId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setEditMaterialId(id);
+                    const mat = materials.find(
+                      (m) => String(m.material_id) === id
+                    );
+                    if (mat) setEditRate(String(mat.rate_per_unit));
+                  }}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Select material...</option>
+                  {materials.map((m) => (
+                    <option key={m.material_id} value={m.material_id}>
+                      {m.name} (₹{m.rate_per_unit}/{m.unit})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
